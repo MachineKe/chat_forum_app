@@ -8,6 +8,9 @@ router.get("/", postsController.getAllPosts);
 // POST /api/posts
 router.post("/", postsController.createPost);
 
+// GET /api/posts/:postId
+router.get("/:postId", postsController.getPostById);
+
 // GET /api/posts/:postId/comments
 router.get("/:postId/comments", postsController.getCommentsForPost);
 

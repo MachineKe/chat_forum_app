@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Register from "../pages/Register";
 import Login from "../pages/Login";
 import Forum from "../pages/Forum";
+import PostDetail from "../pages/PostDetail";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forum" element={<Forum />} />
+        <Route path="/post/:id" element={<PostDetail />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

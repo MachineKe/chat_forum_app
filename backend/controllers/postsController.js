@@ -118,3 +118,31 @@ exports.createPost = async (req, res) => {
     return res.status(500).json({ error: "Failed to create post.", details: err.message });
   }
 };
+
+// GET /api/posts/:postId
+exports.getPostById = async (req, res) => {
+  const { postId } = req.params;
+  try {
+    const post = await Post.findOne({
+      where: { id: postId },
+      include: [
+        {
+          model: User,
+          as: "author",
+          attributes: ["username"],
+        },
+      ],
+    });
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+    return res.json({
+      id: post.id,
+      content: post.content,
+      author: post.author ? post.author.username : "Unknown",
+      createdAt: post.created_at,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch post.", details: err.message });
+  }
+};
