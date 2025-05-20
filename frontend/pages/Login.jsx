@@ -24,7 +24,8 @@ const Login = () => {
         setError(data.error || "Login failed");
         return;
       }
-      // Optionally set user in context here
+      // Store user info in localStorage for use in forum posting
+      localStorage.setItem("user", JSON.stringify({ email }));
       navigate("/forum");
     } catch (err) {
       setError("Network error");

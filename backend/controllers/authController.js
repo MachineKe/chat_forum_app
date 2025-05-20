@@ -25,6 +25,18 @@ exports.login = async (req, res) => {
   return res.json({ message: "Login successful." });
 };
 
+exports.getUserByEmail = async (req, res) => {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+  const user = await User.findOne({ where: { email } });
+  if (!user) {
+    return res.status(404).json({ error: "User not found." });
+  }
+  return res.json({ id: user.id, username: user.username, email: user.email });
+};
+
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
 

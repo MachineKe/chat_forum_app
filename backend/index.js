@@ -23,6 +23,9 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+const postsRoutes = require('./routes/posts');
+app.use('/api/posts', postsRoutes);
+
 // Socket.IO setup
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
