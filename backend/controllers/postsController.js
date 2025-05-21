@@ -12,14 +12,15 @@ exports.getCommentsForPost = async (req, res) => {
         {
           model: User,
           as: "author",
-          attributes: ["username"],
+          attributes: ["username", "full_name", "avatar"],
         },
       ],
     });
     const formatted = comments.map(comment => ({
       id: comment.id,
       content: comment.content,
-      author: comment.author ? comment.author.username : "Unknown",
+      author: comment.author ? (comment.author.full_name || comment.author.username) : "Unknown",
+      avatar: comment.author ? comment.author.avatar || "" : "",
       createdAt: comment.created_at,
       parent_id: comment.parent_id,
     }));
@@ -49,14 +50,15 @@ exports.addCommentToPost = async (req, res) => {
         {
           model: User,
           as: "author",
-          attributes: ["username"],
+          attributes: ["username", "full_name", "avatar"],
         },
       ],
     });
     return res.status(201).json({
       id: commentWithAuthor.id,
       content: commentWithAuthor.content,
-      author: commentWithAuthor.author ? commentWithAuthor.author.username : "Unknown",
+      author: commentWithAuthor.author ? (commentWithAuthor.author.full_name || commentWithAuthor.author.username) : "Unknown",
+      avatar: commentWithAuthor.author ? commentWithAuthor.author.avatar || "" : "",
       createdAt: commentWithAuthor.created_at,
       parent_id: commentWithAuthor.parent_id,
     });
@@ -73,7 +75,7 @@ exports.getAllPosts = async (req, res) => {
         {
           model: User,
           as: "author",
-          attributes: ["username"],
+          attributes: ["username", "full_name", "avatar"],
         },
       ],
     });
@@ -81,7 +83,8 @@ exports.getAllPosts = async (req, res) => {
     const formatted = posts.map(post => ({
       id: post.id,
       content: post.content,
-      author: post.author ? post.author.username : "Unknown",
+      author: post.author ? (post.author.full_name || post.author.username) : "Unknown",
+      avatar: post.author ? post.author.avatar || "" : "",
       createdAt: post.created_at,
     }));
     return res.json(formatted);
@@ -104,19 +107,33 @@ exports.createPost = async (req, res) => {
         {
           model: User,
           as: "author",
-          attributes: ["username"],
+          attributes: ["username", "full_name", "avatar"],
         },
       ],
     });
     return res.status(201).json({
       id: postWithAuthor.id,
       content: postWithAuthor.content,
-      author: postWithAuthor.author ? postWithAuthor.author.username : "Unknown",
+      author: postWithAuthor.author ? (postWithAuthor.author.full_name || postWithAuthor.author.username) : "Unknown",
+      avatar: postWithAuthor.author ? postWithAuthor.author.avatar || "" : "",
       createdAt: postWithAuthor.created_at,
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to create post.", details: err.message });
   }
+};
+
+/**
+ * POST /api/posts/upload-media
+ * Handles media file uploads for posts.
+ */
+exports.uploadMedia = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
+  // Return the URL to the uploaded file
+  const fileUrl = `/uploads/${req.file.filename}`;
+  return res.json({ url: fileUrl });
 };
 
 // GET /api/posts/:postId
@@ -129,7 +146,7 @@ exports.getPostById = async (req, res) => {
         {
           model: User,
           as: "author",
-          attributes: ["username"],
+          attributes: ["username", "full_name", "avatar"],
         },
       ],
     });
@@ -139,7 +156,8 @@ exports.getPostById = async (req, res) => {
     return res.json({
       id: post.id,
       content: post.content,
-      author: post.author ? post.author.username : "Unknown",
+      author: post.author ? (post.author.full_name || post.author.username) : "Unknown",
+      avatar: post.author ? post.author.avatar || "" : "",
       createdAt: post.created_at,
     });
   } catch (err) {

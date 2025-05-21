@@ -100,3 +100,94 @@ exports.register = async (req, res) => {
     message: "Registration successful. Please check your email to verify your account.",
   });
 };
+
+// GET /api/auth/profile?user_id=123
+exports.getProfile = async (req, res) => {
+  const { user_id, email } = req.query;
+  if (!user_id && !email) {
+    return res.status(400).json({ error: "user_id or email is required." });
+  }
+  try {
+    const where = user_id ? { id: user_id } : { email };
+    const user = await User.findOne({ where });
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    return res.json({
+      id: user.id,
+      full_name: user.full_name,
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar || "",
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch profile.", details: err.message });
+  }
+};
+
+// PUT /api/auth/profile
+exports.updateProfile = async (req, res) => {
+  const { user_id, full_name, email, avatar } = req.body;
+  if (!user_id) {
+    return res.status(400).json({ error: "user_id is required." });
+  }
+  try {
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    if (full_name !== undefined) user.full_name = full_name;
+    if (email !== undefined) user.email = email;
+    if (avatar !== undefined) user.avatar = avatar;
+    await user.save();
+    return res.json({
+      id: user.id,
+      full_name: user.full_name,
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar || "",
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to update profile.", details: err.message });
+  }
+};
+
+  // PUT /api/auth/profile/password
+  exports.changePassword = async (req, res) => {
+    const { user_id, old_password, new_password } = req.body;
+    if (!user_id || !old_password || !new_password) {
+      return res.status(400).json({ error: "user_id, old_password, and new_password are required." });
+    }
+    try {
+      const user = await User.findByPk(user_id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found." });
+      }
+      const valid = await bcrypt.compare(old_password, user.password);
+      if (!valid) {
+        return res.status(401).json({ error: "Old password is incorrect." });
+      }
+      // Validate new password
+      if (!passwordRegex.test(new_password)) {
+        return res.status(400).json({
+          error:
+            "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+        });
+      }
+      user.password = await bcrypt.hash(new_password, 12);
+      await user.save();
+      return res.json({ message: "Password updated successfully." });
+    } catch (err) {
+      return res.status(500).json({ error: "Failed to update password.", details: err.message });
+    }
+  };
+
+  // POST /api/auth/upload-avatar
+  exports.uploadAvatar = async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded." });
+    }
+    // Return the URL to the uploaded file
+    const fileUrl = `/uploads/${req.file.filename}`;
+    return res.json({ url: fileUrl });
+  };
