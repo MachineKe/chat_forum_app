@@ -17,9 +17,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// POST /api/posts/upload-media
+ // POST /api/posts/upload-media
 router.post("/upload-media", upload.single("media"), postsController.uploadMedia);
 
+ // POST /api/posts/:postId/like
+router.post("/:postId/like", postsController.toggleLike);
+
+// POST /api/posts/:postId/view
+router.post("/:postId/view", postsController.incrementView);
+
+// GET /api/posts/:postId/likes
+router.get("/:postId/likes", postsController.getLikes);
 
 // GET /api/posts
 router.get("/", postsController.getAllPosts);

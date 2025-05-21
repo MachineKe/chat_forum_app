@@ -1,36 +1,27 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../services/sequelize');
 
-const Post = sequelize.define('Post', {
+const PostLike = sequelize.define('PostLike', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true
   },
-  user_id: {
+  post_id: {
     type: DataTypes.INTEGER,
     allowNull: false
   },
-  content: {
-    type: DataTypes.TEXT,
+  user_id: {
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
-  },
-  view_count: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
   }
 }, {
-  tableName: 'posts',
+  tableName: 'post_likes',
   timestamps: false
 });
 
-const PostLike = require('./PostLike');
-
-// Association
-Post.hasMany(PostLike, { foreignKey: 'post_id', as: 'likes' });
-
-module.exports = Post;
+module.exports = PostLike;

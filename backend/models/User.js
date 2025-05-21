@@ -7,6 +7,11 @@ const User = sequelize.define('User', {
     autoIncrement: true,
     primaryKey: true
   },
+  bio: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    defaultValue: ""
+  },
   full_name: {
     type: DataTypes.STRING(100),
     allowNull: false,

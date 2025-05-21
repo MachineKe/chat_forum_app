@@ -34,7 +34,7 @@ exports.getUserByEmail = async (req, res) => {
   if (!user) {
     return res.status(404).json({ error: "User not found." });
   }
-  return res.json({ id: user.id, username: user.username, email: user.email });
+  return res.json({ id: user.id, username: user.username, email: user.email, full_name: user.full_name, avatar: user.avatar || "" });
 };
 
 exports.register = async (req, res) => {
@@ -101,24 +101,35 @@ exports.register = async (req, res) => {
   });
 };
 
-// GET /api/auth/profile?user_id=123
+  // GET /api/auth/profile?user_id=123 or ?email=... or ?username=...
 exports.getProfile = async (req, res) => {
-  const { user_id, email } = req.query;
-  if (!user_id && !email) {
-    return res.status(400).json({ error: "user_id or email is required." });
+  const { user_id, email, username } = req.query;
+  if (!user_id && !email && !username) {
+    return res.status(400).json({ error: "user_id, email, or username is required." });
   }
   try {
-    const where = user_id ? { id: user_id } : { email };
+    let where = {};
+    if (user_id) where = { id: user_id };
+    else if (email) where = { email };
+    else if (username) where = { username };
     const user = await User.findOne({ where });
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
+    // Get followers and following counts
+    const { UserFollow } = require("../models");
+    const followers = await UserFollow.count({ where: { following_id: user.id } });
+    const following = await UserFollow.count({ where: { follower_id: user.id } });
+
     return res.json({
       id: user.id,
       full_name: user.full_name,
       username: user.username,
       email: user.email,
       avatar: user.avatar || "",
+      bio: user.bio || "",
+      followers,
+      following,
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch profile.", details: err.message });
@@ -139,6 +150,7 @@ exports.updateProfile = async (req, res) => {
     if (full_name !== undefined) user.full_name = full_name;
     if (email !== undefined) user.email = email;
     if (avatar !== undefined) user.avatar = avatar;
+    if (req.body.bio !== undefined) user.bio = req.body.bio;
     await user.save();
     return res.json({
       id: user.id,
@@ -146,6 +158,7 @@ exports.updateProfile = async (req, res) => {
       username: user.username,
       email: user.email,
       avatar: user.avatar || "",
+      bio: user.bio || "",
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to update profile.", details: err.message });
