@@ -20,6 +20,7 @@ const TiptapEditor = ({
   placeholder = "Add your comment here...",
   editable = true,
   minHeight = 100,
+  onNext,
 }) => {
   const [tab, setTab] = useState("write");
   // Placeholder user data
@@ -157,16 +158,17 @@ const TiptapEditor = ({
           </div>
         </div>
       </div>
-      {/* Schedule post row */}
-      <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-2 mb-2 border border-gray-200 mx-4">
-        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="#E5E7EB"/><path d="M8 2v4M16 2v4M3 10h18" stroke="#9CA3AF" strokeWidth="2"/><rect x="7" y="14" width="4" height="4" rx="1" fill="#3B82F6"/></svg>
-        <span className="text-gray-500 text-sm">schedule post</span>
-      </div>
       {/* Post button */}
       <div className="px-4 pb-4">
         <button
           className={`w-full py-2 rounded-lg font-semibold text-white transition-colors ${editor.getText().trim() ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed"}`}
           disabled={!editor.getText().trim()}
+          onClick={() => {
+            if (editor.getText().trim() && typeof onNext === "function") {
+              console.log("Next button clicked, calling onNext");
+              onNext();
+            }
+          }}
         >
           Next
         </button>

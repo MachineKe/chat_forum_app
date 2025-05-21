@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PostCard from "../components/PostCard";
 import TiptapEditor from "../components/TiptapEditor";
+import PostSettingsCard from "../components/PostSettingsCard";
 
 const Forum = () => {
   const [content, setContent] = useState("");
@@ -120,6 +121,7 @@ const Forum = () => {
           {/* Post Composer */}
           {showSettings ? (
             <PostSettingsCard
+              key="post-settings"
               content={content}
               onBack={() => setShowSettings(false)}
               onPost={handleSubmit}
@@ -127,6 +129,7 @@ const Forum = () => {
             />
           ) : (
             <TiptapEditor
+              key="tiptap-editor"
               value={content}
               onChange={setContent}
               placeholder="What's happening?"
