@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import Button from "./Button";
 import { Link } from "react-router-dom";
 import TiptapEditor from "./TiptapEditor";
+import { FaRegThumbsUp, FaRegComment, FaShare } from "react-icons/fa";
+import { FiMoreHorizontal } from "react-icons/fi";
 
 // Simple relative time formatter
 function getRelativeTime(dateString) {
@@ -128,23 +130,20 @@ const PostCard = ({ id, content, author, createdAt, alwaysShowComments }) => {
             <div className="text-xs text-gray-500">{getRelativeTime(createdAt)}</div>
           </div>
           <button className="text-gray-400 hover:text-gray-600 text-xl font-bold px-2 py-1 rounded-full transition-colors" title="More" tabIndex={-1} onClick={e => e.preventDefault()}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            <FiMoreHorizontal size={20} />
           </button>
         </div>
         {/* Post content */}
         <div className="px-4 pb-2">
-          <div
-            className="text-gray-900 text-base mb-2"
-            style={{ minHeight: 32 }}
-            dangerouslySetInnerHTML={{ __html: content }}
-          />
-          {/* Optionally, render an image if present in content (not implemented here) */}
+          <div className="text-gray-900 text-base mb-2" style={{ minHeight: 32 }}>
+            {renderTextBeforeMedia(content)}
+          </div>
         </div>
         {/* Like/Comment counts row */}
         <div className="flex items-center justify-between px-4 pt-2 pb-1 text-gray-500 text-sm border-b">
           <div className="flex items-center gap-1">
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100">
-              <svg width="16" height="16" fill="#1877f2" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              <FaRegThumbsUp size={16} color="#1877f2" />
             </span>
             <span>327</span>
           </div>
@@ -155,15 +154,15 @@ const PostCard = ({ id, content, author, createdAt, alwaysShowComments }) => {
         {/* Reactions row */}
         <div className="flex items-center justify-center px-4 py-1 text-gray-500 text-sm gap-2">
           <button className="flex-1 flex flex-col items-center py-2 hover:bg-gray-100 rounded cursor-pointer transition" tabIndex={-1} onClick={e => e.preventDefault()}>
-            <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><path d="M7 22h10a4 4 0 0 0 4-4v-5a4 4 0 0 0-4-4h-1.28a1 1 0 0 1-.95-.68l-.57-1.71A2 2 0 0 0 12.28 4H7a2 2 0 0 0-2 2v12a4 4 0 0 0 2 3.46V22z" fill="#e4e6eb"/></svg>
+            <FaRegThumbsUp size={20} color="#65676b" />
             <span className="text-xs mt-1">Like</span>
           </button>
           <button className="flex-1 flex flex-col items-center py-2 hover:bg-gray-100 rounded cursor-pointer transition" tabIndex={-1} onClick={e => e.preventDefault()}>
-            <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="#e4e6eb"/></svg>
+            <FaRegComment size={20} color="#65676b" />
             <span className="text-xs mt-1">Comment</span>
           </button>
           <button className="flex-1 flex flex-col items-center py-2 hover:bg-gray-100 rounded cursor-pointer transition" tabIndex={-1} onClick={e => e.preventDefault()}>
-            <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4v16l7-7 7 7V4z" fill="#e4e6eb"/></svg>
+            <FaShare size={20} color="#65676b" />
             <span className="text-xs mt-1">Share</span>
           </button>
         </div>
@@ -258,5 +257,83 @@ function Comment({ comment, comments, handleAddComment }) {
   );
 }
 
+function renderTextBeforeMedia(html) {
+  try {
+    if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
+      return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const nodes = Array.from(doc.body.childNodes);
+
+    // Separate text and media nodes
+    const textNodes = [];
+    const mediaNodes = [];
+    nodes.forEach((node, i) => {
+      if (
+        node.nodeType === 3 || // Text node
+        (node.nodeType === 1 && node.tagName !== "IMG" && node.tagName !== "VIDEO")
+      ) {
+        textNodes.push(node);
+      } else if (node.nodeType === 1 && (node.tagName === "IMG" || node.tagName === "VIDEO")) {
+        mediaNodes.push(node);
+      }
+    });
+
+    // Helper to convert DOM node to React element
+    function domToReact(node, key) {
+      if (node.nodeType === 3) {
+        return node.textContent;
+      }
+      if (node.nodeType === 1) {
+        if (node.tagName === "IMG") {
+          return (
+            <img
+              key={key}
+              src={node.getAttribute("src")}
+              alt=""
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "VIDEO") {
+          return (
+            <video
+              key={key}
+              src={node.getAttribute("src")}
+              controls
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        // Handle void elements (e.g., hr, br, input, etc.)
+        const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
+        if (voidTags.includes(node.tagName)) {
+          return React.createElement(
+            node.tagName.toLowerCase(),
+            { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) }
+          );
+        }
+        // For other elements, recursively render children
+        return React.createElement(
+          node.tagName.toLowerCase(),
+          { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) },
+          Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
+        );
+      }
+      return null;
+    }
+
+    return (
+      <>
+        {textNodes.map((node, i) => domToReact(node, `text-${i}`))}
+        {mediaNodes.map((node, i) => domToReact(node, `media-${i}`))}
+      </>
+    );
+  } catch (err) {
+    // Fallback to raw HTML if parsing fails
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  }
+}
 
 export default PostCard;

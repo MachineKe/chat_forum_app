@@ -11,6 +11,7 @@ const PostDetail = () => {
   const [comments, setComments] = useState([]);
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isReplyActive, setIsReplyActive] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -32,6 +33,59 @@ const PostDetail = () => {
 
   // Placeholder counts
   const likeCount = 3400, commentCount = 11000, shareCount = 71000, viewCount = "16.4M";
+
+  // Add this function to handle posting a reply
+  async function handleReply() {
+    if (!reply.trim()) return;
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user || !user.email) {
+      alert("You must be logged in to reply.");
+      return;
+    }
+    // Fetch user id
+    let userId = null;
+    let username = "";
+    try {
+      const res = await fetch(`/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`);
+      const data = await res.json();
+      if (data && data.id) {
+        userId = data.id;
+        username = data.username || data.email;
+      }
+    } catch {
+      alert("Failed to fetch user info.");
+      return;
+    }
+    if (!userId) {
+      alert("User not found.");
+      return;
+    }
+    // Post reply (top-level comment)
+    try {
+      const res = await fetch(`/api/posts/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          content: reply,
+          parent_id: null,
+        }),
+      });
+      if (!res.ok) {
+        alert("Failed to post reply.");
+        return;
+      }
+      setReply("");
+      // Refresh comments
+      fetch(`/api/posts/${id}/comments`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setComments(data);
+        });
+    } catch {
+      alert("Network error.");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
@@ -118,8 +172,9 @@ const PostDetail = () => {
               <div
                 className="text-gray-900 text-lg mb-2"
                 style={{ minHeight: 32 }}
-                dangerouslySetInnerHTML={{ __html: post.content }}
-              />
+              >
+                {renderTextBeforeMedia(post.content)}
+              </div>
               <div className="flex items-center gap-2 text-gray-500 text-sm mt-2">
                 <span>1:46 AM · May 20, 2025</span>
                 <span>·</span>
@@ -149,29 +204,50 @@ const PostDetail = () => {
                 className="w-10 h-10 rounded-full object-cover border border-gray-300"
               />
               <div className="flex-1">
-                <TiptapEditor
-                  value={reply}
-                  onChange={setReply}
-                  placeholder="Post your reply"
-                  minHeight={40}
-                />
-                <div className="flex items-center gap-2 mt-2">
-                  <button className="p-2 rounded-full hover:bg-gray-100">
-                    <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" /><path d="M14 14l6 6" /></svg>
-                  </button>
-                  <button className="p-2 rounded-full hover:bg-gray-100">
-                    <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /></svg>
-                  </button>
-                  <button className="p-2 rounded-full hover:bg-gray-100">
-                    <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20v-6M12 4v2m0 0a8 8 0 1 1-8 8" /></svg>
-                  </button>
-                  <button className="p-2 rounded-full hover:bg-gray-100">
-                    <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
-                  </button>
-                  <button className="ml-auto bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 transition-colors">
-                    Reply
-                  </button>
-                </div>
+                {isReplyActive ? (
+                  <>
+                    <TiptapEditor
+                      value={reply}
+                      onChange={setReply}
+                      placeholder="Post your reply"
+                      minHeight={40}
+                      onBlur={() => {
+                        if (!reply.trim()) setIsReplyActive(false);
+                      }}
+                      onClose={() => setIsReplyActive(false)}
+                    />
+                    <div className="flex items-center gap-2 mt-2">
+                      <button className="p-2 rounded-full hover:bg-gray-100">
+                        <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" /><path d="M14 14l6 6" /></svg>
+                      </button>
+                      <button className="p-2 rounded-full hover:bg-gray-100">
+                        <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /></svg>
+                      </button>
+                      <button className="p-2 rounded-full hover:bg-gray-100">
+                        <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 20v-6M12 4v2m0 0a8 8 0 1 1-8 8" /></svg>
+                      </button>
+                      <button className="p-2 rounded-full hover:bg-gray-100">
+                        <svg width="20" height="20" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
+                      </button>
+                      <button
+                        className="ml-auto bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 transition-colors"
+                        onClick={handleReply}
+                      >
+                        Reply
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    className="w-full min-h-[40px] px-4 py-2 bg-gray-100 rounded-lg text-gray-700 text-base cursor-text border border-gray-200 hover:bg-gray-200 transition"
+                    style={{ lineHeight: "2.2rem" }}
+                    tabIndex={0}
+                    onFocus={() => setIsReplyActive(true)}
+                    onClick={() => setIsReplyActive(true)}
+                  >
+                    {reply ? reply : <span className="text-gray-400">Post your reply</span>}
+                  </div>
+                )}
               </div>
             </div>
             {/* Replies/comments */}
@@ -192,7 +268,9 @@ const PostDetail = () => {
                       <span className="text-gray-500 text-xs">@{comment.author?.toLowerCase().replace(/\s/g, "")}</span>
                       <span className="text-gray-400 text-xs">· 1h</span>
                     </div>
-                    <div className="text-gray-900 text-base mb-2" dangerouslySetInnerHTML={{ __html: comment.content }} />
+                    <div className="text-gray-900 text-base mb-2">
+                      {renderTextBeforeMedia(comment.content)}
+                    </div>
                     <div className="flex items-center gap-6 text-gray-500 text-xs mt-1">
                       <span className="flex items-center gap-1">
                         <svg width="16" height="16" fill="none" stroke="#65676b" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -273,5 +351,84 @@ const PostDetail = () => {
     </div>
   );
 };
+
+function renderTextBeforeMedia(html) {
+  try {
+    if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
+      return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const nodes = Array.from(doc.body.childNodes);
+
+    // Separate text and media nodes
+    const textNodes = [];
+    const mediaNodes = [];
+    nodes.forEach((node, i) => {
+      if (
+        node.nodeType === 3 || // Text node
+        (node.nodeType === 1 && node.tagName !== "IMG" && node.tagName !== "VIDEO")
+      ) {
+        textNodes.push(node);
+      } else if (node.nodeType === 1 && (node.tagName === "IMG" || node.tagName === "VIDEO")) {
+        mediaNodes.push(node);
+      }
+    });
+
+    // Helper to convert DOM node to React element
+    function domToReact(node, key) {
+      if (node.nodeType === 3) {
+        return node.textContent;
+      }
+      if (node.nodeType === 1) {
+        if (node.tagName === "IMG") {
+          return (
+            <img
+              key={key}
+              src={node.getAttribute("src")}
+              alt=""
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "VIDEO") {
+          return (
+            <video
+              key={key}
+              src={node.getAttribute("src")}
+              controls
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        // Handle void elements (e.g., hr, br, input, etc.)
+        const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
+        if (voidTags.includes(node.tagName)) {
+          return React.createElement(
+            node.tagName.toLowerCase(),
+            { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) }
+          );
+        }
+        // For other elements, recursively render children
+        return React.createElement(
+          node.tagName.toLowerCase(),
+          { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) },
+          Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
+        );
+      }
+      return null;
+    }
+
+    return (
+      <>
+        {textNodes.map((node, i) => domToReact(node, `text-${i}`))}
+        {mediaNodes.map((node, i) => domToReact(node, `media-${i}`))}
+      </>
+    );
+  } catch (err) {
+    // Fallback to raw HTML if parsing fails
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  }
+}
 
 export default PostDetail;
