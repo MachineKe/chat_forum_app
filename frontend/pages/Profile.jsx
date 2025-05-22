@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import Avatar from "../components/Avatar";
 
 const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff";
 
