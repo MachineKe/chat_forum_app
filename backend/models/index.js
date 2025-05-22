@@ -4,6 +4,7 @@ const Message = require('./Message');
 const Post = require('./Post');
 const Comment = require('./Comment');
 const UserFollow = require('./UserFollow')(sequelize, require('sequelize').DataTypes);
+const CommentLike = require('./CommentLike')(sequelize, require('sequelize').DataTypes);
 
 // Associations
 User.hasMany(Message, { foreignKey: 'sender_id', as: 'sentMessages' });
@@ -40,4 +41,5 @@ module.exports = {
   Post,
   Comment,
   UserFollow,
+  CommentLike,
 };

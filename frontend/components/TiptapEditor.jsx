@@ -6,6 +6,29 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
+import { Node, mergeAttributes } from "@tiptap/core";
+
+// Custom Video extension for Tiptap
+const Video = Node.create({
+  name: "video",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      controls: { default: true },
+      style: { default: "max-width:100%" },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "video" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["video", mergeAttributes(HTMLAttributes)];
+  },
+});
 
 const toolbarBtn =
   "w-8 h-8 flex items-center justify-center rounded transition-colors border-none outline-none focus:ring-2 focus:ring-blue-500";
@@ -25,20 +48,16 @@ const TiptapEditor = ({
   onNext,
   onClose,
   actionLabel = "Next",
+  user = { name: "User", avatar: "", audience: "Public" },
 }) => {
   const [tab, setTab] = useState("write");
-  // Placeholder user data
-  const user = {
-    name: "Mark Kiprotich",
-    avatar: "https://ui-avatars.com/api/?name=Mark+Kiprotich&background=0D8ABC&color=fff",
-    audience: "Public"
-  };
   const editor = useEditor({
     extensions: [
       StarterKit,
       Link.configure({ openOnClick: true }),
       Image,
       Youtube,
+      Video, // Add custom video extension
     ],
     content: value,
     editable,
@@ -159,20 +178,45 @@ const TiptapEditor = ({
                 input.onchange = (e) => {
                   const file = e.target.files[0];
                   if (file) {
-                    if (file.type.startsWith("image/")) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        editor.chain().focus().setImage({ src: event.target.result }).run();
-                      };
-                      reader.readAsDataURL(file);
-                    } else if (file.type.startsWith("video/")) {
-                      const url = URL.createObjectURL(file);
-                      editor.chain().focus().setVideo?.({ src: url }).run();
-                      // If no setVideo, insert a link or alert
-                      if (!editor.commands.setVideo) {
-                        editor.chain().focus().insertContent(`<video controls src="${url}" style="max-width:100%"></video>`).run();
+                if (file.type.startsWith("image/")) {
+                  // Upload image to backend
+                  const formData = new FormData();
+                  formData.append("media", file);
+                  fetch("/api/posts/upload-media", {
+                    method: "POST",
+                    body: formData,
+                  })
+                    .then((res) => res.json())
+                    .then((data) => {
+                      if (data.url) {
+                        editor.chain().focus().setImage({ src: data.url }).run();
+                      } else {
+                        alert("Image upload failed.");
                       }
-                    }
+                    })
+                    .catch(() => {
+                      alert("Image upload failed.");
+                    });
+                } else if (file.type.startsWith("video/")) {
+                  // Upload video to backend
+                  const formData = new FormData();
+                  formData.append("media", file);
+                  fetch("/api/posts/upload-media", {
+                    method: "POST",
+                    body: formData,
+                  })
+                    .then((res) => res.json())
+                    .then((data) => {
+                      if (data.url) {
+                        editor.chain().focus().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).run();
+                      } else {
+                        alert("Video upload failed.");
+                      }
+                    })
+                    .catch(() => {
+                      alert("Video upload failed.");
+                    });
+                }
                   }
                 };
                 input.click();
@@ -228,12 +272,17 @@ const TiptapEditor = ({
       {/* Post button */}
       <div className="px-4 pb-4">
         <button
-          className={`w-full py-2 rounded-lg font-semibold text-white transition-colors ${editor.getText().trim() ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed"}`}
-          disabled={!editor.getText().trim()}
+          className={`w-full py-2 rounded-lg font-semibold text-white transition-colors ${
+            (editor.getText().trim() || hasMedia(editor.getHTML()))
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "bg-gray-300 cursor-not-allowed"
+          }`}
+          disabled={!(editor.getText().trim() || hasMedia(editor.getHTML()))}
           onClick={() => {
-            if (editor.getText().trim() && typeof onNext === "function") {
+            if ((editor.getText().trim() || hasMedia(editor.getHTML())) && typeof onNext === "function") {
               console.log("Next button clicked, calling onNext");
               onNext();
+              // Do NOT clear the editor here; let the parent clear after successful post
             }
           }}
         >
@@ -243,5 +292,107 @@ const TiptapEditor = ({
     </Card>
   );
 };
+
+// MediaPlayer-based preview renderer
+import MediaPlayer from "./MediaPlayer";
+
+// Helper to check for media tags in HTML
+function hasMedia(html) {
+  if (!html) return false;
+  return /<(img|video|audio)\b/i.test(html);
+}
+
+function renderTextBeforeMedia(html) {
+  try {
+    if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
+      return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const nodes = Array.from(doc.body.childNodes);
+
+    // Separate text and media nodes
+    const textNodes = [];
+    const mediaNodes = [];
+    nodes.forEach((node, i) => {
+      if (
+        node.nodeType === 3 || // Text node
+        (node.nodeType === 1 && node.tagName !== "IMG" && node.tagName !== "VIDEO")
+      ) {
+        textNodes.push(node);
+      } else if (node.nodeType === 1 && (node.tagName === "IMG" || node.tagName === "VIDEO")) {
+        mediaNodes.push(node);
+      }
+    });
+
+    // Helper to convert DOM node to React element
+    function domToReact(node, key) {
+      if (node.nodeType === 3) {
+        return node.textContent;
+      }
+      if (node.nodeType === 1) {
+        if (node.tagName === "IMG") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="image"
+              alt=""
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "VIDEO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="video"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "AUDIO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="audio"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        // Handle void elements (e.g., hr, br, input, etc.)
+        const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
+        if (voidTags.includes(node.tagName)) {
+          return React.createElement(
+            node.tagName.toLowerCase(),
+            { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) }
+          );
+        }
+        // For other elements, recursively render children
+        return React.createElement(
+          node.tagName.toLowerCase(),
+          { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) },
+          Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
+        );
+      }
+      return null;
+    }
+
+    return (
+      <>
+        {textNodes.map((node, i) => domToReact(node, `text-${i}`))}
+        {mediaNodes.map((node, i) => domToReact(node, `media-${i}`))}
+      </>
+    );
+  } catch (err) {
+    // Fallback to raw HTML if parsing fails
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  }
+}
 
 export default TiptapEditor;

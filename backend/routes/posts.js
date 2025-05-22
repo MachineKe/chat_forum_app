@@ -5,9 +5,21 @@ const multer = require("multer");
 const path = require("path");
 const postsController = require("../controllers/postsController");
 
+const fs = require("fs");
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "../public/uploads"));
+    let subfolder = "others";
+    console.log("Multer upload file mimetype:", file.mimetype, "originalname:", file.originalname);
+    if (file.mimetype.startsWith("image/")) {
+      subfolder = "photos";
+    } else if (file.mimetype.startsWith("video/")) {
+      subfolder = "videos";
+    }
+    const dest = path.join(__dirname, "../public/uploads", subfolder);
+    console.log("Multer upload destination:", dest);
+    fs.mkdirSync(dest, { recursive: true });
+    cb(null, dest);
   },
   filename: function (req, file, cb) {
     const ext = path.extname(file.originalname);

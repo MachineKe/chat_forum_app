@@ -7,6 +7,7 @@ import TiptapEditor from "./TiptapEditor";
 import { FaRegThumbsUp, FaRegComment, FaShare } from "react-icons/fa";
 import { FiMoreHorizontal } from "react-icons/fi";
 import { redirectTo } from "../utils/redirect";
+import LikeButton from "./LikeButton";
 
 // Simple relative time formatter
 function getRelativeTime(dateString) {
@@ -168,26 +169,22 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
 
   // Like button handler
   const handleLike = async (e) => {
-    e.preventDefault();
     if (!userId) {
       alert("You must be logged in to like posts.");
       return;
     }
     setLikeLoading(true);
     try {
-      const res = await fetch(`/api/posts/${id}/like`, {
+      await fetch(`/api/posts/${id}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId }),
       });
-      const data = await res.json();
-      if (data.liked) {
-        setLiked(true);
-        setLikeCount((c) => c + 1);
-      } else {
-        setLiked(false);
-        setLikeCount((c) => Math.max(0, c - 1));
-      }
+      // Always fetch the latest like count and liked status after toggling
+      const res2 = await fetch(`/api/posts/${id}/likes?user_id=${userId}`);
+      const data2 = await res2.json();
+      setLikeCount(data2.count || 0);
+      setLiked(!!data2.liked);
     } catch {
       // Optionally show error
     }
@@ -197,12 +194,14 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
   // Comment button handler
   const handleComment = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     navigate(`/post/${id}`);
   };
 
   // Share button handler
   const handleShare = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     const url = window.location.origin + `/post/${id}`;
     navigator.clipboard.writeText(url);
     alert("Post link copied to clipboard!");
@@ -286,15 +285,19 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
       </div>
       {/* Reactions row */}
       <div className="flex items-center justify-center px-4 py-1 text-gray-500 text-sm gap-2">
-        <button
+        <LikeButton
+          liked={liked}
+          likeCount={likeCount}
+          loading={likeLoading}
+          onLike={handleLike}
+          variant="button"
           className={`flex-1 flex flex-col items-center py-2 rounded cursor-pointer transition ${liked ? "bg-blue-50 text-blue-600" : "hover:bg-gray-100"}`}
           tabIndex={-1}
-          onClick={handleLike}
-          disabled={likeLoading}
+          style={{ background: "none", border: "none" }}
         >
           <FaRegThumbsUp size={20} color={liked ? "#1877f2" : "#65676b"} />
           <span className="text-xs mt-1">{liked ? "Liked" : "Like"}</span>
-        </button>
+        </LikeButton>
         <button
           className="flex-1 flex flex-col items-center py-2 hover:bg-gray-100 rounded cursor-pointer transition"
           tabIndex={-1}
@@ -514,21 +517,35 @@ function renderTextBeforeMedia(html) {
       }
       if (node.nodeType === 1) {
         if (node.tagName === "IMG") {
+          const src = node.getAttribute("src");
           return (
-            <img
+            <MediaPlayer
               key={key}
-              src={node.getAttribute("src")}
+              src={src}
+              type="image"
               alt=""
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
         }
         if (node.tagName === "VIDEO") {
+          const src = node.getAttribute("src");
           return (
-            <video
+            <MediaPlayer
               key={key}
-              src={node.getAttribute("src")}
-              controls
+              src={src}
+              type="video"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "AUDIO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="audio"
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );

@@ -2,6 +2,7 @@ const { Post } = require("../models");
 const { User } = require("../models");
 const { Comment } = require("../models");
 const PostLike = require("../models/PostLike");
+const path = require("path");
 
 exports.getCommentsForPost = async (req, res) => {
   const { postId } = req.params;
@@ -213,8 +214,13 @@ exports.getAllPosts = async (req, res) => {
 
 exports.createPost = async (req, res) => {
   const { user_id, content } = req.body;
-  if (!user_id || !content) {
-    return res.status(400).json({ error: "user_id and content are required." });
+  if (!user_id) {
+    return res.status(400).json({ error: "user_id is required." });
+  }
+  // Allow post if content has text or any media tag
+  const hasMedia = content && /<(img|video|audio)\b/i.test(content);
+  if ((!content || !content.trim()) && !hasMedia) {
+    return res.status(400).json({ error: "Post content cannot be empty." });
   }
   try {
     const post = await Post.create({ user_id, content });
@@ -249,8 +255,14 @@ exports.uploadMedia = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded." });
   }
-  // Return the URL to the uploaded file
-  const fileUrl = `/uploads/${req.file.filename}`;
+  // Determine subfolder from destination
+  const destParts = req.file.destination.split(path.sep);
+  const uploadsIdx = destParts.lastIndexOf("uploads");
+  let subfolder = "";
+  if (uploadsIdx !== -1 && destParts.length > uploadsIdx + 1) {
+    subfolder = destParts[uploadsIdx + 1];
+  }
+  const fileUrl = `/uploads/${subfolder}/${req.file.filename}`;
   return res.json({ url: fileUrl });
 };
 

@@ -1,6 +1,9 @@
 import React, { useState, useRef } from "react";
 import TiptapEditor from "./TiptapEditor";
 import Avatar from "./Avatar";
+import MediaPlayer from "./MediaPlayer";
+import LikeButton from "./LikeButton";
+import { FaThumbsUp } from "react-icons/fa";
 
 const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff";
 
@@ -35,10 +38,66 @@ const CommentThread = ({
     grouped[pid].push(c);
   });
 
-  // Helper to render a comment and its replies
-  function renderComment(comment) {
-    const replies = grouped[comment.id] || [];
-    const isExpanded = expandedReplies[comment.id];
+  // Dedicated Comment component to render a comment and its replies
+  function Comment({
+    comment,
+    replies,
+    isExpanded,
+    onExpand,
+    replyingToCommentId,
+    setReplyingToCommentId,
+    isCommentReplyEditorActive,
+    setIsCommentReplyEditorActive,
+    commentReplyContent,
+    setCommentReplyContent,
+    onReply,
+    fetchComments,
+    expandedReplies,
+    setExpandedReplies,
+  }) {
+    const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
+    const [liked, setLiked] = useState(comment.liked || false);
+    const [likeLoading, setLikeLoading] = useState(false);
+
+    // Fetch like count and liked status on mount
+    React.useEffect(() => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user?.id;
+      fetch(`/api/comments/${comment.id}/likes${userId ? `?user_id=${userId}` : ""}`)
+        .then(res => res.json())
+        .then(data => {
+          setLikeCount(data.count || 0);
+          setLiked(!!data.liked);
+        });
+    }, [comment.id]);
+
+    const handleLike = async () => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user?.id;
+      if (!userId) {
+        alert("You must be logged in to like comments.");
+        return;
+      }
+      setLikeLoading(true);
+      try {
+        const res = await fetch(`/api/comments/${comment.id}/like`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId }),
+        });
+        const data = await res.json();
+        if (data.liked) {
+          setLiked(true);
+          setLikeCount((c) => c + 1);
+        } else {
+          setLiked(false);
+          setLikeCount((c) => Math.max(0, c - 1));
+        }
+      } catch {
+        // Optionally show error
+      }
+      setLikeLoading(false);
+    };
 
     return (
       <div
@@ -79,17 +138,18 @@ const CommentThread = ({
             </span>
             <span className="text-gray-400 text-xs">· 1h</span>
           </div>
-          <div className="text-gray-900 text-base mb-2" dangerouslySetInnerHTML={{ __html: comment.content }} />
+          <div className="text-gray-900 text-base mb-2">
+            {renderTextBeforeMedia(comment.content)}
+          </div>
           <div className="flex items-center gap-4 text-gray-500 text-xs mt-1">
             <span>57m</span>
-            <button
-              className="text-blue-600 font-medium hover:underline px-1 bg-transparent border-none cursor-pointer"
-              tabIndex={0}
-              onClick={() => {}}
+            <LikeButton
+              liked={liked}
+              loading={likeLoading}
+              onLike={handleLike}
               style={{ padding: 0 }}
-            >
-              Like
-            </button>
+              variant="link"
+            />
             <button
               className="text-blue-600 font-medium hover:underline px-1 bg-transparent border-none cursor-pointer"
               tabIndex={0}
@@ -103,6 +163,27 @@ const CommentThread = ({
               Reply
             </button>
           </div>
+          {likeCount > 0 && (
+            <div className="flex items-center gap-1 mt-1 ml-auto w-fit pr-2">
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  background: "#e4e6eb",
+                  borderRadius: "999px",
+                  padding: "2px 8px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#1877f2",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                  marginLeft: "auto"
+                }}
+              >
+                <FaThumbsUp size={15} style={{ marginRight: 3 }} color="#1877f2" />
+                {likeCount}
+              </span>
+            </div>
+          )}
           {replies.length > 0 && (
             <div className="mt-2 ml-2">
               {!isExpanded ? (
@@ -116,7 +197,25 @@ const CommentThread = ({
                 </button>
               ) : (
                 <div>
-                  {replies.map(renderComment)}
+                  {replies.map(reply =>
+                    <Comment
+                      key={reply.id}
+                      comment={reply}
+                      replies={grouped[reply.id] || []}
+                      isExpanded={expandedReplies[reply.id]}
+                      onExpand={onExpand}
+                      replyingToCommentId={replyingToCommentId}
+                      setReplyingToCommentId={setReplyingToCommentId}
+                      isCommentReplyEditorActive={isCommentReplyEditorActive}
+                      setIsCommentReplyEditorActive={setIsCommentReplyEditorActive}
+                      commentReplyContent={commentReplyContent}
+                      setCommentReplyContent={setCommentReplyContent}
+                      onReply={onReply}
+                      fetchComments={fetchComments}
+                      expandedReplies={expandedReplies}
+                      setExpandedReplies={setExpandedReplies}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -172,10 +271,125 @@ const CommentThread = ({
       ) : comments.length === 0 ? (
         <div className="text-gray-400 text-center py-8">No replies yet.</div>
       ) : (
-        (grouped["root"] || []).map(renderComment)
+        (grouped["root"] || []).map(comment =>
+          <Comment
+            key={comment.id}
+            comment={comment}
+            replies={grouped[comment.id] || []}
+            isExpanded={expandedReplies[comment.id]}
+            onExpand={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: true }))}
+            replyingToCommentId={replyingToCommentId}
+            setReplyingToCommentId={setReplyingToCommentId}
+            isCommentReplyEditorActive={isCommentReplyEditorActive}
+            setIsCommentReplyEditorActive={setIsCommentReplyEditorActive}
+            commentReplyContent={commentReplyContent}
+            setCommentReplyContent={setCommentReplyContent}
+            onReply={onReply}
+            fetchComments={fetchComments}
+            expandedReplies={expandedReplies}
+            setExpandedReplies={setExpandedReplies}
+          />
+        )
       )}
     </div>
   );
 };
+
+/**
+ * Render HTML content with MediaPlayer for images/videos/audio.
+ * Similar to PostSettingsCard and TiptapEditor.
+ */
+function renderTextBeforeMedia(html) {
+  try {
+    if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
+      return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const nodes = Array.from(doc.body.childNodes);
+
+    // Separate text and media nodes
+    const textNodes = [];
+    const mediaNodes = [];
+    nodes.forEach((node, i) => {
+      if (
+        node.nodeType === 3 || // Text node
+        (node.nodeType === 1 && node.tagName !== "IMG" && node.tagName !== "VIDEO" && node.tagName !== "AUDIO")
+      ) {
+        textNodes.push(node);
+      } else if (node.nodeType === 1 && (node.tagName === "IMG" || node.tagName === "VIDEO" || node.tagName === "AUDIO")) {
+        mediaNodes.push(node);
+      }
+    });
+
+    // Helper to convert DOM node to React element
+    function domToReact(node, key) {
+      if (node.nodeType === 3) {
+        return node.textContent;
+      }
+      if (node.nodeType === 1) {
+        if (node.tagName === "IMG") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="image"
+              alt=""
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "VIDEO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="video"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "AUDIO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="audio"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        // Handle void elements (e.g., hr, br, input, etc.)
+        const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
+        if (voidTags.includes(node.tagName)) {
+          return React.createElement(
+            node.tagName.toLowerCase(),
+            { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) }
+          );
+        }
+        // For other elements, recursively render children
+        return React.createElement(
+          node.tagName.toLowerCase(),
+          { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) },
+          Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
+        );
+      }
+      return null;
+    }
+
+    return (
+      <>
+        {textNodes.map((node, i) => domToReact(node, `text-${i}`))}
+        {mediaNodes.map((node, i) => domToReact(node, `media-${i}`))}
+      </>
+    );
+  } catch (err) {
+    // Fallback to raw HTML if parsing fails
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  }
+}
 
 export default CommentThread;

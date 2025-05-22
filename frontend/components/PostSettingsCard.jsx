@@ -1,7 +1,101 @@
 import React, { useState } from "react";
 import Card from "./Card";
+import MediaPlayer from "./MediaPlayer";
 
-const PostSettingsCard = ({ content, onBack, onPost, loading }) => {
+function renderTextBeforeMedia(html) {
+  try {
+    if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
+      return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const nodes = Array.from(doc.body.childNodes);
+
+    // Separate text and media nodes
+    const textNodes = [];
+    const mediaNodes = [];
+    nodes.forEach((node, i) => {
+      if (
+        node.nodeType === 3 || // Text node
+        (node.nodeType === 1 && node.tagName !== "IMG" && node.tagName !== "VIDEO")
+      ) {
+        textNodes.push(node);
+      } else if (node.nodeType === 1 && (node.tagName === "IMG" || node.tagName === "VIDEO")) {
+        mediaNodes.push(node);
+      }
+    });
+
+    // Helper to convert DOM node to React element
+    function domToReact(node, key) {
+      if (node.nodeType === 3) {
+        return node.textContent;
+      }
+      if (node.nodeType === 1) {
+        if (node.tagName === "IMG") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="image"
+              alt=""
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "VIDEO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="video"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "AUDIO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="audio"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        // Handle void elements (e.g., hr, br, input, etc.)
+        const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
+        if (voidTags.includes(node.tagName)) {
+          return React.createElement(
+            node.tagName.toLowerCase(),
+            { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) }
+          );
+        }
+        // For other elements, recursively render children
+        return React.createElement(
+          node.tagName.toLowerCase(),
+          { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) },
+          Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
+        );
+      }
+      return null;
+    }
+
+    return (
+      <>
+        {textNodes.map((node, i) => domToReact(node, `text-${i}`))}
+        {mediaNodes.map((node, i) => domToReact(node, `media-${i}`))}
+      </>
+    );
+  } catch (err) {
+    // Fallback to raw HTML if parsing fails
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  }
+}
+
+const PostSettingsCard = ({ content, onBack, onPost, loading, user = { name: "User", avatar: "" } }) => {
   const [boost, setBoost] = useState(false);
 
   return (
@@ -9,21 +103,32 @@ const PostSettingsCard = ({ content, onBack, onPost, loading }) => {
       {/* Header */}
       <div className="flex items-center border-b px-4 py-3">
         <button
-          className="mr-2 text-gray-600 hover:bg-gray-100 rounded-full p-1"
+          className="text-gray-600 hover:bg-gray-100 rounded-full p-1 mr-2"
           onClick={onBack}
           aria-label="Back"
+          style={{ lineHeight: 0 }}
         >
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M15 19l-7-7 7-7" />
           </svg>
         </button>
+        <span className="mr-2">
+          <img
+            src={user.avatar}
+            alt={user.name}
+            style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }}
+          />
+        </span>
+        <span className="font-semibold text-gray-900">{user.name}</span>
         <div className="flex-1 text-center font-semibold text-lg text-gray-900">Post settings</div>
         <div className="w-8" /> {/* Spacer for symmetry */}
       </div>
       {/* Post preview */}
       <div className="px-4 pt-4 pb-2">
         <div className="font-semibold text-gray-900 mb-1">Post preview</div>
-        <div className="bg-gray-100 rounded-lg p-4 text-gray-900 mb-2 border border-gray-200 min-h-[40px]" style={{ fontSize: 16 }} dangerouslySetInnerHTML={{ __html: content }} />
+        <div className="p-0 text-gray-900 mb-2 min-h-[40px]" style={{ fontSize: 16 }}>
+          {renderTextBeforeMedia(content)}
+        </div>
       </div>
       {/* Schedule post row */}
       <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border-t border-b-0 border-gray-200 mx-4 mt-0 mb-0">
