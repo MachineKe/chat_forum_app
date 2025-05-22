@@ -49,7 +49,7 @@ const Sidebar = ({
     >
       <div className="flex flex-col gap-2 sticky top-6 h-[calc(100vh-3rem)] p-6">
         {/* EPRA Title */}
-        <div className="text-2xl font-bold mb-4 px-4 text-blue-700 tracking-widest">EPRA</div>
+        <Link to="/" className="text-2xl font-bold mb-4 px-4 text-blue-700 tracking-widest">EPRA</Link>
         {/* Emoji Nav */}
         <nav className="flex flex-col gap-1">
           {navItems.map((item) =>
