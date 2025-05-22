@@ -88,10 +88,10 @@ const Sidebar = ({
         {/* User Profile Section */}
         <div
           className="mt-auto flex items-center gap-2 px-4 py-2 rounded-full hover:bg-gray-200 cursor-pointer"
-          onClick={() => navigate("/profile")}
+          onClick={() => navigate(`/user/${user.username}`)}
           tabIndex={0}
           role="button"
-          aria-label="Open profile management"
+          aria-label="Open public profile"
         >
           <img
             src={avatar}

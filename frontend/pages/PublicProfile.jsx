@@ -112,7 +112,16 @@ const PublicProfile = () => {
                 },
               ].filter(Boolean)}
               onEdit={() => navigate("/profile")}
-              isOwnProfile={false}
+              isOwnProfile={
+              (() => {
+                try {
+                  const stored = JSON.parse(localStorage.getItem("user"));
+                  return stored && stored.username === user.username;
+                } catch {
+                  return false;
+                }
+              })()
+            }
             />
             {/* Tabs */}
             <div className="border-b flex gap-8 px-6">
