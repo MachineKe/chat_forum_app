@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import Avatar from "./Avatar";
+import Card from "./Card";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -22,6 +24,7 @@ const TiptapEditor = ({
   minHeight = 100,
   onNext,
   onClose,
+  actionLabel = "Next",
 }) => {
   const [tab, setTab] = useState("write");
   // Placeholder user data
@@ -54,17 +57,17 @@ const TiptapEditor = ({
   if (!editor) return null;
 
   return (
-    <div
-      className="w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-0"
+    <Card
+      className="w-full p-0"
       style={{ marginBottom: 16, position: "relative" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div className="flex items-center gap-3">
-          <img
+          <Avatar
             src={user.avatar}
             alt={user.name}
-            className="w-10 h-10 rounded-full object-cover border border-gray-300"
+            size={40}
           />
           <div>
             <div className="font-semibold text-gray-900">{user.name}</div>
@@ -234,10 +237,10 @@ const TiptapEditor = ({
             }
           }}
         >
-          Next
+          {actionLabel}
         </button>
       </div>
-    </div>
+    </Card>
   );
 };
 

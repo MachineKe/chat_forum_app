@@ -1,10 +1,11 @@
 import React, { useState } from "react";
+import Card from "./Card";
 
 const PostSettingsCard = ({ content, onBack, onPost, loading }) => {
   const [boost, setBoost] = useState(false);
 
   return (
-    <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-0 mb-4">
+    <Card className="w-full p-0 mb-4">
       {/* Header */}
       <div className="flex items-center border-b px-4 py-3">
         <button
@@ -63,7 +64,7 @@ const PostSettingsCard = ({ content, onBack, onPost, loading }) => {
           {loading ? "Saving..." : "Post"}
         </button>
       </div>
-    </div>
+    </Card>
   );
 };
 

@@ -4,6 +4,8 @@ import Register from "../pages/Register";
 import Login from "../pages/Login";
 import Forum from "../pages/Forum";
 import PostDetail from "../pages/PostDetail";
+import Profile from "../pages/Profile";
+import PublicProfile from "../pages/PublicProfile";
 
 function App() {
   return (
@@ -11,8 +13,10 @@ function App() {
       <Routes>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/forum" element={<Forum />} />
+        <Route path="/" element={<Forum />} />
         <Route path="/post/:id" element={<PostDetail />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/user/:username" element={<PublicProfile />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
