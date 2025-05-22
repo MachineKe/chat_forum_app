@@ -225,7 +225,11 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
                 alt={author}
                 size={40}
                 className="avatar-profile-link"
-                profileUrl={`${window.location.origin}/user/${username}`}
+                profileUrl={`/user/${username}`}
+                onClick={e => {
+                  e.preventDefault();
+                  navigate(`/user/${username}`);
+                }}
               />
             );
           } else {
@@ -244,12 +248,12 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
           <a
             className="font-semibold text-gray-900 hover:underline cursor-pointer"
             href={username && typeof username === "string" && username.trim().length > 0
-              ? `${window.location.origin}/user/${username}`
+              ? `/user/${username}`
               : undefined}
             onClick={e => {
               if (username && typeof username === "string" && username.trim().length > 0) {
                 e.preventDefault();
-                window.location.assign(`${window.location.origin}/user/${username}`);
+                navigate(`/user/${username}`);
               }
             }}
           >

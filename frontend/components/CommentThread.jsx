@@ -4,6 +4,7 @@ import Avatar from "./Avatar";
 import MediaPlayer from "./MediaPlayer";
 import LikeButton from "./LikeButton";
 import { FaThumbsUp } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff";
 
@@ -58,6 +59,7 @@ const CommentThread = ({
     const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
     const [liked, setLiked] = useState(comment.liked || false);
     const [likeLoading, setLikeLoading] = useState(false);
+    const navigate = useNavigate();
 
     // Fetch like count and liked status on mount
     React.useEffect(() => {
@@ -109,25 +111,23 @@ const CommentThread = ({
           alt={comment.author}
           size={40}
           className="w-10 h-10 rounded-full object-cover border border-gray-300"
-          profileUrl={
-            comment.username
-              ? `${window.location.origin}/user/${comment.username}`
-              : undefined
-          }
+          profileUrl={comment.username ? `/user/${comment.username}` : undefined}
+          onClick={e => {
+            if (comment.username) {
+              e.preventDefault();
+              navigate(`/user/${comment.username}`);
+            }
+          }}
         />
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <a
               className="font-semibold text-gray-900 hover:underline cursor-pointer"
-              href={
-                comment.username
-                  ? `${window.location.origin}/user/${comment.username}`
-                  : undefined
-              }
+              href={comment.username ? `/user/${comment.username}` : undefined}
               onClick={e => {
                 if (comment.username) {
                   e.preventDefault();
-                  window.location.assign(`${window.location.origin}/user/${comment.username}`);
+                  navigate(`/user/${comment.username}`);
                 }
               }}
             >
