@@ -15,6 +15,22 @@ const Post = sequelize.define('Post', {
     type: DataTypes.TEXT,
     allowNull: false
   },
+  media_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'media',
+      key: 'id'
+    }
+  },
+  media_type: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  media_path: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -29,8 +45,10 @@ const Post = sequelize.define('Post', {
 });
 
 const PostLike = require('./PostLike');
+const Media = require('./Media');
 
-// Association
+// Associations
 Post.hasMany(PostLike, { foreignKey: 'post_id', as: 'likes' });
+Post.belongsTo(Media, { foreignKey: 'media_id', as: 'media' });
 
 module.exports = Post;

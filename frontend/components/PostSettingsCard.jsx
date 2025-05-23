@@ -67,16 +67,53 @@ function renderTextBeforeMedia(html) {
         }
         // Handle void elements (e.g., hr, br, input, etc.)
         const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
+        // Helper to convert style string to object
+        function styleStringToObject(styleString) {
+          if (!styleString) return undefined;
+          return styleString.split(";").filter(Boolean).reduce((acc, item) => {
+            const [prop, value] = item.split(":");
+            if (prop && value) {
+              // Convert kebab-case to camelCase
+              const camelProp = prop.trim().replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+              acc[camelProp] = value.trim();
+            }
+            return acc;
+          }, {});
+        }
+        // Build props object, converting style if present
+        function buildProps(node, key) {
+          const props = { key };
+          for (const attr of Array.from(node.attributes)) {
+            if (attr.name === "style") {
+              const styleObj = styleStringToObject(attr.value);
+              if (styleObj) props.style = styleObj;
+            } else {
+              props[attr.name] = attr.value;
+            }
+          }
+          return props;
+        }
         if (voidTags.includes(node.tagName)) {
+          // Special handling for <embed> to ensure style is always an object
+          if (node.tagName === "EMBED") {
+            const props = buildProps(node, key);
+            if (props.style && typeof props.style === "string") {
+              props.style = styleStringToObject(props.style);
+            }
+            return React.createElement(
+              node.tagName.toLowerCase(),
+              props
+            );
+          }
           return React.createElement(
             node.tagName.toLowerCase(),
-            { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) }
+            buildProps(node, key)
           );
         }
         // For other elements, recursively render children
         return React.createElement(
           node.tagName.toLowerCase(),
-          { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) },
+          buildProps(node, key),
           Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
         );
       }

@@ -15,6 +15,18 @@ const storage = multer.diskStorage({
       subfolder = "photos";
     } else if (file.mimetype.startsWith("video/")) {
       subfolder = "videos";
+    } else if (file.mimetype.startsWith("audio/")) {
+      subfolder = "audio";
+    } else if (
+      file.mimetype === "application/pdf" ||
+      file.mimetype === "application/msword" ||
+      file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.mimetype === "application/vnd.ms-excel" ||
+      file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      file.mimetype === "application/vnd.ms-powerpoint" ||
+      file.mimetype === "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    ) {
+      subfolder = "documents";
     }
     const dest = path.join(__dirname, "../public/uploads", subfolder);
     console.log("Multer upload destination:", dest);

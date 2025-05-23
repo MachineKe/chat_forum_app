@@ -27,6 +27,18 @@ const Comment = sequelize.define('Comment', {
     type: DataTypes.TEXT,
     allowNull: false
   },
+  media_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  media_type: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  media_path: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

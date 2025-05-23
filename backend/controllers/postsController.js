@@ -7,6 +7,7 @@ const path = require("path");
 exports.getCommentsForPost = async (req, res) => {
   const { postId } = req.params;
   try {
+    const { Comment, User, Media } = require("../models");
     const comments = await Comment.findAll({
       where: { post_id: Number(postId) },
       order: [["created_at", "ASC"]],
@@ -18,6 +19,15 @@ exports.getCommentsForPost = async (req, res) => {
         },
       ],
     });
+
+    // Fetch all media for comments in one query
+    const mediaIds = comments.map(c => c.media_id).filter(Boolean);
+    let mediaMap = {};
+    if (mediaIds.length > 0) {
+      const mediaRecords = await Media.findAll({ where: { id: mediaIds } });
+      mediaMap = Object.fromEntries(mediaRecords.map(m => [m.id, m]));
+    }
+
     const formatted = comments.map(comment => ({
       id: comment.id,
       content: comment.content,
@@ -26,6 +36,16 @@ exports.getCommentsForPost = async (req, res) => {
       avatar: comment.author ? comment.author.avatar || "" : "",
       createdAt: comment.created_at,
       parent_id: comment.parent_id,
+      media: comment.media_id && mediaMap[comment.media_id]
+        ? {
+            id: mediaMap[comment.media_id].id,
+            url: mediaMap[comment.media_id].url,
+            type: mediaMap[comment.media_id].type,
+            filename: mediaMap[comment.media_id].filename,
+          }
+        : null,
+      media_type: comment.media_type || (comment.media_id && mediaMap[comment.media_id] ? mediaMap[comment.media_id].type : null),
+      media_path: comment.media_path || (comment.media_id && mediaMap[comment.media_id] ? mediaMap[comment.media_id].url : null)
     }));
     return res.json(formatted);
   } catch (err) {
@@ -72,16 +92,77 @@ exports.getLikes = async (req, res) => {
 
 exports.addCommentToPost = async (req, res) => {
   const { postId } = req.params;
-  const { user_id, content, parent_id } = req.body;
+  const { user_id, content, parent_id, media_id, media_type, media_path } = req.body;
   if (!user_id || !content) {
     return res.status(400).json({ error: "user_id and content are required." });
   }
+
+  // Helper to clean content and set media marker (same as in createPost)
+  function parseContentAndMedia(content, media_type, media_path) {
+    let text = content || "";
+    let type = media_type || null;
+    let path = media_path || null;
+
+    // If content contains media HTML, extract type/path
+    const audioRegex = /<audio[^>]*src="([^"]+)"[^>]*>/i;
+    const videoRegex = /<video[^>]*src="([^"]+)"[^>]*>/i;
+    const pdfRegex = /<embed[^>]*type="application\/pdf"[^>]*src="([^"]+)"[^>]*>/i;
+
+    if (audioRegex.test(text)) {
+      const match = text.match(audioRegex);
+      type = "audio";
+      path = match[1];
+      text = ""; // Remove marker from content
+    } else if (videoRegex.test(text)) {
+      const match = text.match(videoRegex);
+      type = "video";
+      path = match[1];
+      text = "";
+    } else if (pdfRegex.test(text)) {
+      const match = text.match(pdfRegex);
+      type = "pdf";
+      path = match[1];
+      text = "";
+    } else if (type && path) {
+      // If type/path provided, leave text as is (no marker)
+    } else {
+      // Remove any HTML tags, keep only text
+      text = text.replace(/<[^>]+>/g, "").trim();
+    }
+    // Remove any "+ audio", "+ video", "+ pdf" markers from text
+    text = text.replace(/^\s*\+\s*(audio|video|pdf)\s*$/i, "").trim();
+    return { text, type, path };
+  }
+
   try {
+    let finalMediaType = media_type;
+    let finalMediaPath = media_path;
+
+    // If media_id is provided, fetch media info
+    let resolvedMediaId = media_id || null;
+    if (media_id && (!media_type || !media_path)) {
+      const Media = require("../models/Media");
+      const media = await Media.findByPk(media_id);
+      if (media) {
+        finalMediaType = media.type && media.type.startsWith("audio") ? "audio"
+          : media.type && media.type.startsWith("video") ? "video"
+          : media.type === "application/pdf" ? "pdf"
+          : null;
+        finalMediaPath = media.url;
+      }
+    }
+
+    // Clean content and set marker
+    const { text, type, path } = parseContentAndMedia(content, finalMediaType, finalMediaPath);
+
     const comment = await Comment.create({
       post_id: postId,
       user_id,
-      content,
+      content: text,
       parent_id: parent_id || null,
+      media_id: resolvedMediaId,
+      media_type: type,
+      media_path: path
     });
     // Fetch with author
     const commentWithAuthor = await Comment.findOne({
@@ -101,6 +182,9 @@ exports.addCommentToPost = async (req, res) => {
       avatar: commentWithAuthor.author ? commentWithAuthor.author.avatar || "" : "",
       createdAt: commentWithAuthor.created_at,
       parent_id: commentWithAuthor.parent_id,
+      media_id: commentWithAuthor.media_id,
+      media_type: commentWithAuthor.media_type,
+      media_path: commentWithAuthor.media_path
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to add comment.", details: err.message });
@@ -195,7 +279,16 @@ exports.getAllPosts = async (req, res) => {
       commentCounts[row.post_id] = parseInt(row.get("count"), 10);
     });
 
-    // Format posts to include author username, comment count, and view count
+    // Fetch media for all posts in one query
+    const Media = require("../models/Media");
+    const mediaIds = posts.map(post => post.media_id).filter(Boolean);
+    let mediaMap = {};
+    if (mediaIds.length > 0) {
+      const mediaRecords = await Media.findAll({ where: { id: mediaIds } });
+      mediaMap = Object.fromEntries(mediaRecords.map(m => [m.id, m]));
+    }
+
+    // Format posts to include author username, comment count, view count, and media
     const formatted = posts.map(post => ({
       id: post.id,
       content: post.content,
@@ -205,6 +298,14 @@ exports.getAllPosts = async (req, res) => {
       createdAt: post.created_at,
       commentCount: commentCounts[post.id] || 0,
       viewCount: post.view_count,
+      media: post.media_id && mediaMap[post.media_id]
+        ? {
+            id: mediaMap[post.media_id].id,
+            url: mediaMap[post.media_id].url,
+            type: mediaMap[post.media_id].type,
+            filename: mediaMap[post.media_id].filename,
+          }
+        : null,
     }));
     return res.json(formatted);
   } catch (err) {
@@ -213,18 +314,83 @@ exports.getAllPosts = async (req, res) => {
 };
 
 exports.createPost = async (req, res) => {
-  const { user_id, content } = req.body;
+  const { user_id, content, media_id, media_type, media_path } = req.body;
   if (!user_id) {
     return res.status(400).json({ error: "user_id is required." });
   }
-  // Allow post if content has text or any media tag
-  const hasMedia = content && /<(img|video|audio)\b/i.test(content);
-  if ((!content || !content.trim()) && !hasMedia) {
+
+  // Helper to clean content and set media marker
+  function parseContentAndMedia(content, media_type, media_path) {
+    let text = content || "";
+    let type = media_type || null;
+    let path = media_path || null;
+
+    // If content contains media HTML, extract type/path
+    const audioRegex = /<audio[^>]*src="([^"]+)"[^>]*>/i;
+    const videoRegex = /<video[^>]*src="([^"]+)"[^>]*>/i;
+    const pdfRegex = /<embed[^>]*type="application\/pdf"[^>]*src="([^"]+)"[^>]*>/i;
+
+    if (audioRegex.test(text)) {
+      const match = text.match(audioRegex);
+      type = "audio";
+      path = match[1];
+      text = ""; // Remove marker from content
+    } else if (videoRegex.test(text)) {
+      const match = text.match(videoRegex);
+      type = "video";
+      path = match[1];
+      text = "";
+    } else if (pdfRegex.test(text)) {
+      const match = text.match(pdfRegex);
+      type = "pdf";
+      path = match[1];
+      text = "";
+    } else if (type && path) {
+      // If type/path provided, leave text as is (no marker)
+    } else {
+      // Remove any HTML tags, keep only text
+      text = text.replace(/<[^>]+>/g, "").trim();
+    }
+    // Remove any "+ audio", "+ video", "+ pdf" markers from text
+    text = text.replace(/^\s*\+\s*(audio|video|pdf)\s*$/i, "").trim();
+    return { text, type, path };
+  }
+
+  // Allow post if content has text or any media info
+  const hasMedia = !!(media_type && media_path) || (content && /<(img|video|audio|embed)\b/i.test(content));
+  if ((!content || !content.trim()) && !hasMedia && !media_id) {
     return res.status(400).json({ error: "Post content cannot be empty." });
   }
+
   try {
-    const post = await Post.create({ user_id, content });
-    // Fetch with author
+    let finalMediaType = media_type;
+    let finalMediaPath = media_path;
+
+    // If media_id is provided, fetch media info
+    if (media_id && (!media_type || !media_path)) {
+      const Media = require("../models/Media");
+      const media = await Media.findByPk(media_id);
+      if (media) {
+        finalMediaType = media.type && media.type.startsWith("audio") ? "audio"
+          : media.type && media.type.startsWith("video") ? "video"
+          : media.type === "application/pdf" ? "pdf"
+          : null;
+        finalMediaPath = media.url;
+      }
+    }
+
+    // Clean content and set marker
+    const { text, type, path } = parseContentAndMedia(content, finalMediaType, finalMediaPath);
+
+    const post = await Post.create({
+      user_id,
+      content: text,
+      media_id: media_id || null,
+      media_type: type,
+      media_path: path
+    });
+
+    // Fetch with author and media
     const postWithAuthor = await Post.findOne({
       where: { id: post.id },
       include: [
@@ -232,6 +398,10 @@ exports.createPost = async (req, res) => {
           model: User,
           as: "author",
           attributes: ["username", "full_name", "avatar"],
+        },
+        {
+          model: require("../models/Media"),
+          as: "media",
         },
       ],
     });
@@ -241,6 +411,16 @@ exports.createPost = async (req, res) => {
       author: postWithAuthor.author ? (postWithAuthor.author.full_name || postWithAuthor.author.username) : "Unknown",
       avatar: postWithAuthor.author ? postWithAuthor.author.avatar || "" : "",
       createdAt: postWithAuthor.created_at,
+      media: postWithAuthor.media
+        ? {
+            id: postWithAuthor.media.id,
+            url: postWithAuthor.media.url,
+            type: postWithAuthor.media.type,
+            filename: postWithAuthor.media.filename,
+          }
+        : null,
+      media_type: postWithAuthor.media_type,
+      media_path: postWithAuthor.media_path
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to create post.", details: err.message });
@@ -251,6 +431,8 @@ exports.createPost = async (req, res) => {
  * POST /api/posts/upload-media
  * Handles media file uploads for posts.
  */
+const Media = require("../models/Media");
+
 exports.uploadMedia = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded." });
@@ -263,7 +445,18 @@ exports.uploadMedia = async (req, res) => {
     subfolder = destParts[uploadsIdx + 1];
   }
   const fileUrl = `/uploads/${subfolder}/${req.file.filename}`;
-  return res.json({ url: fileUrl });
+  try {
+    const media = await Media.create({
+      filename: req.file.filename,
+      url: fileUrl,
+      type: req.file.mimetype,
+      uploader_id: req.user ? req.user.id : null, // If using authentication middleware
+      created_at: new Date(),
+    });
+    return res.json({ id: media.id, url: media.url });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to save media record.", details: err.message });
+  }
 };
 
   // POST /api/posts/:postId/view
@@ -294,6 +487,10 @@ exports.getPostById = async (req, res) => {
           as: "author",
           attributes: ["username", "full_name", "avatar"],
         },
+        {
+          model: require("../models/Media"),
+          as: "media",
+        },
       ],
     });
     if (!post) {
@@ -307,6 +504,16 @@ exports.getPostById = async (req, res) => {
       avatar: post.author ? post.author.avatar || "" : "",
       createdAt: post.created_at,
       viewCount: post.view_count,
+      media: post.media
+        ? {
+            id: post.media.id,
+            url: post.media.url,
+            type: post.media.type,
+            filename: post.media.filename,
+          }
+        : null,
+      media_type: post.media_type,
+      media_path: post.media_path
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch post.", details: err.message });

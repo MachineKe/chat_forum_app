@@ -8,6 +8,8 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Password: min 8 chars, upper, lower, number, special
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
+const jwt = require("jsonwebtoken");
+
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -21,8 +23,27 @@ exports.login = async (req, res) => {
   if (!valid) {
     return res.status(401).json({ error: "Invalid email or password." });
   }
-  // Optionally generate JWT here
-  return res.json({ message: "Login successful." });
+  // Generate JWT
+  const token = jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+    },
+    process.env.JWT_SECRET || "default_jwt_secret",
+    { expiresIn: "7d" }
+  );
+  return res.json({
+    message: "Login successful.",
+    token,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      full_name: user.full_name,
+      avatar: user.avatar || "",
+    },
+  });
 };
 
 exports.getUserByEmail = async (req, res) => {

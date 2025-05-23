@@ -1,9 +1,10 @@
-import React from "react";
+import React, { forwardRef } from "react";
 
-const AudioPlayer = ({ src, controls = true, autoPlay = false, loop = false, className = "", style = {} }) => {
+const AudioPlayer = forwardRef(({ src, controls = true, autoPlay = false, loop = false, className = "", style = {} }, ref) => {
   if (!src) return null;
   return (
     <audio
+      ref={ref}
       src={src}
       controls={controls}
       autoPlay={autoPlay}
@@ -14,6 +15,6 @@ const AudioPlayer = ({ src, controls = true, autoPlay = false, loop = false, cla
       Your browser does not support the audio element.
     </audio>
   );
-};
+});
 
 export default AudioPlayer;

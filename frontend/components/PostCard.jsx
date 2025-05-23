@@ -21,7 +21,24 @@ function getRelativeTime(dateString) {
   return date.toLocaleDateString();
 }
 
-const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, commentCount, viewCount, username, isSingleView }) => {
+import MediaPlayer from "./MediaPlayer";
+import useUser from "../hooks/useUser";
+
+const PostCard = ({
+  id,
+  content,
+  author,
+  avatar,
+  createdAt,
+  alwaysShowComments,
+  commentCount,
+  viewCount,
+  username,
+  isSingleView,
+  media,
+  media_type: propMediaType,
+  media_path: propMediaPath
+}) => {
   const navigate = useNavigate();
   const [comments, setComments] = useState([]);
   const [showComments, setShowComments] = useState(!!alwaysShowComments);
@@ -170,7 +187,7 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
   // Like button handler
   const handleLike = async (e) => {
     if (!userId) {
-      alert("You must be logged in to like posts.");
+      navigate("/login");
       return;
     }
     setLikeLoading(true);
@@ -205,6 +222,15 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
     const url = window.location.origin + `/post/${id}`;
     navigator.clipboard.writeText(url);
     alert("Post link copied to clipboard!");
+  };
+
+  // Get logged-in user for reply editors (single source of truth)
+  const { fullName, username: userUsername, userAvatar, loading: userLoading } = useUser();
+  const replyUser = {
+    name: fullName || userUsername || "User",
+    username: userUsername || "",
+    avatar: userAvatar || "",
+    audience: "Public"
   };
 
   // Facebook-style card
@@ -266,6 +292,47 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
           <FiMoreHorizontal size={20} />
         </button>
       </div>
+      {/* Media (if present) */}
+      {(() => {
+        // Enhanced: handle media as object or array, and various field names
+        let mediaType = propMediaType || null;
+        let mediaPath = propMediaPath || null;
+        let mediaObj = media;
+
+        // If media is an array, use the first item
+        if (Array.isArray(mediaObj) && mediaObj.length > 0) {
+          mediaObj = mediaObj[0];
+        }
+        if (!mediaType && mediaObj) {
+          mediaType =
+            mediaObj.media_type ||
+            mediaObj.mediaType ||
+            mediaObj.type ||
+            null;
+        }
+        if (!mediaPath && mediaObj) {
+          mediaPath =
+            mediaObj.media_path ||
+            mediaObj.mediaPath ||
+            mediaObj.path ||
+            mediaObj.url ||
+            null;
+        }
+
+        if (mediaPath && mediaType) {
+          const isDocument = (mediaType === "document" || mediaType === "pdf" || (typeof mediaPath === "string" && mediaPath.toLowerCase().endsWith(".pdf")));
+          return (
+            <div className={isDocument ? "pt-2" : "px-4 pt-2"}>
+              <MediaPlayer
+                src={mediaPath}
+                type={mediaType}
+                style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+              />
+            </div>
+          );
+        }
+        return null;
+      })()}
       {/* Post content */}
       <div className="px-4 pb-2">
         <div className="text-gray-900 text-base mb-2" style={{ minHeight: 32 }}>
@@ -340,7 +407,7 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
             {comments.length === 0 && (
               <div className="text-gray-400 text-sm">No comments yet.</div>
             )}
-            {renderComments(comments, null, handleAddComment)}
+            {renderComments(comments, null, handleAddComment, replyUser, userLoading)}
           </div>
         </div>
       )}
@@ -397,7 +464,7 @@ const PostCard = ({ id, content, author, avatar, createdAt, alwaysShowComments, 
 };
 
 // Recursive comment rendering with reply form
-function renderComments(comments, parentId, handleAddComment) {
+function renderComments(comments, parentId, handleAddComment, user, loading) {
   // Only render comments with matching parent_id
   const filtered = comments.filter(c => c.parent_id === parentId);
   if (filtered.length === 0) return null;
@@ -407,12 +474,14 @@ function renderComments(comments, parentId, handleAddComment) {
       comment={comment}
       comments={comments}
       handleAddComment={handleAddComment}
+      user={user}
+      loading={loading}
     />
   ));
 }
 
 // Comment component with its own reply state
-function Comment({ comment, comments, handleAddComment }) {
+function Comment({ comment, comments, handleAddComment, user, loading }) {
   const [replyContent, setReplyContent] = useState("");
   const [replyLoading, setReplyLoading] = useState(false);
   const [replyError, setReplyError] = useState("");
@@ -441,8 +510,9 @@ function Comment({ comment, comments, handleAddComment }) {
       <div className="flex-1">
         <div
           className="text-sm"
-          dangerouslySetInnerHTML={{ __html: comment.content }}
-        />
+        >
+          {renderTextBeforeMedia(comment.content)}
+        </div>
         <div className="text-xs text-gray-500 flex justify-between">
           <a
             className="hover:underline cursor-pointer"
@@ -458,130 +528,47 @@ function Comment({ comment, comments, handleAddComment }) {
           </a>
           <span>{getRelativeTime(comment.createdAt)}</span>
         </div>
-        <form
-          className="mb-2 flex gap-2 items-start"
-          onSubmit={e =>
-            handleAddComment(
-              e,
-              comment.id,
-              replyContent,
-              setReplyLoading,
-              setReplyError,
-              setReplyContent
-            )
-          }
-        >
-          <div className="flex-1">
-            <TiptapEditor
-              value={replyContent}
-              onChange={setReplyContent}
-              placeholder="Reply..."
-              minHeight={40}
-              actionLabel="Reply"
-            />
-          </div>
-          <Button type="submit" disabled={replyLoading} style={{ height: 40 }}>
-            {replyLoading ? "Posting..." : "Reply"}
-          </Button>
-          {replyError && <div className="text-red-600 mb-2">{replyError}</div>}
-        </form>
-        {renderComments(comments, comment.id, handleAddComment)}
+        {loading ? (
+          <div className="text-gray-400 text-sm mb-2">Loading user...</div>
+        ) : (
+          <form
+            className="mb-2 flex gap-2 items-start"
+            onSubmit={e =>
+              handleAddComment(
+                e,
+                comment.id,
+                replyContent,
+                setReplyLoading,
+                setReplyError,
+                setReplyContent
+              )
+            }
+          >
+            <div className="flex-1">
+              <TiptapEditor
+                value={replyContent}
+                onChange={setReplyContent}
+                placeholder="Reply..."
+                minHeight={40}
+                actionLabel="Reply"
+                user={user}
+              />
+            </div>
+            <Button type="submit" disabled={replyLoading} style={{ height: 40 }}>
+              {replyLoading ? "Posting..." : "Reply"}
+            </Button>
+            {replyError && <div className="text-red-600 mb-2">{replyError}</div>}
+          </form>
+        )}
+        {renderComments(comments, comment.id, handleAddComment, user, loading)}
       </div>
     </div>
   );
 }
 
-function renderTextBeforeMedia(html) {
-  try {
-    if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
-      return <span dangerouslySetInnerHTML={{ __html: html }} />;
-    }
-    const parser = new window.DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    const nodes = Array.from(doc.body.childNodes);
-
-    // Separate text and media nodes
-    const textNodes = [];
-    const mediaNodes = [];
-    nodes.forEach((node, i) => {
-      if (
-        node.nodeType === 3 || // Text node
-        (node.nodeType === 1 && node.tagName !== "IMG" && node.tagName !== "VIDEO")
-      ) {
-        textNodes.push(node);
-      } else if (node.nodeType === 1 && (node.tagName === "IMG" || node.tagName === "VIDEO")) {
-        mediaNodes.push(node);
-      }
-    });
-
-    // Helper to convert DOM node to React element
-    function domToReact(node, key) {
-      if (node.nodeType === 3) {
-        return node.textContent;
-      }
-      if (node.nodeType === 1) {
-        if (node.tagName === "IMG") {
-          const src = node.getAttribute("src");
-          return (
-            <MediaPlayer
-              key={key}
-              src={src}
-              type="image"
-              alt=""
-              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
-            />
-          );
-        }
-        if (node.tagName === "VIDEO") {
-          const src = node.getAttribute("src");
-          return (
-            <MediaPlayer
-              key={key}
-              src={src}
-              type="video"
-              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
-            />
-          );
-        }
-        if (node.tagName === "AUDIO") {
-          const src = node.getAttribute("src");
-          return (
-            <MediaPlayer
-              key={key}
-              src={src}
-              type="audio"
-              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
-            />
-          );
-        }
-        // Handle void elements (e.g., hr, br, input, etc.)
-        const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
-        if (voidTags.includes(node.tagName)) {
-          return React.createElement(
-            node.tagName.toLowerCase(),
-            { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) }
-          );
-        }
-        // For other elements, recursively render children
-        return React.createElement(
-          node.tagName.toLowerCase(),
-          { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) },
-          Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
-        );
-      }
-      return null;
-    }
-
-    return (
-      <>
-        {textNodes.map((node, i) => domToReact(node, `text-${i}`))}
-        {mediaNodes.map((node, i) => domToReact(node, `media-${i}`))}
-      </>
-    );
-  } catch (err) {
-    // Fallback to raw HTML if parsing fails
-    return <span dangerouslySetInnerHTML={{ __html: html }} />;
-  }
+function renderTextBeforeMedia(content) {
+  // Now content is just text or "+ audio"/"+ video"/"+ pdf"
+  return <span>{content}</span>;
 }
 
 export default PostCard;

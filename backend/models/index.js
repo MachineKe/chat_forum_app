@@ -3,6 +3,7 @@ const User = require('./User');
 const Message = require('./Message');
 const Post = require('./Post');
 const Comment = require('./Comment');
+const Media = require('./Media');
 const UserFollow = require('./UserFollow')(sequelize, require('sequelize').DataTypes);
 const CommentLike = require('./CommentLike')(sequelize, require('sequelize').DataTypes);
 
@@ -40,6 +41,7 @@ module.exports = {
   Message,
   Post,
   Comment,
+  Media,
   UserFollow,
   CommentLike,
 };

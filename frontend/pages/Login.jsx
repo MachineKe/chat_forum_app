@@ -3,32 +3,23 @@ import { useNavigate } from "react-router-dom";
 import AuthLayout from "../layouts/AuthLayout";
 import Input from "../components/Input";
 import Button from "../components/Button";
+import { useAuth } from "../hooks/useAuth.jsx";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Login failed");
-        return;
-      }
-      // Store user info in localStorage for use in forum posting
-      localStorage.setItem("user", JSON.stringify({ email }));
-      navigate("/forum");
-    } catch (err) {
-      setError("Network error");
+    const result = await login(email, password);
+    if (result.success) {
+      navigate("/");
+    } else {
+      setError(result.error || "Login failed");
     }
   };
 

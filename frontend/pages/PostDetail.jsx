@@ -155,6 +155,9 @@ const PostDetail = () => {
             username={post.username || post.authorUsername}
             alwaysShowComments={false}
             isSingleView={true}
+            media={post.media}
+            media_type={post.media_type}
+            media_path={post.media_path}
           />
           <div className="flex justify-center px-4 py-4 border-b">
             <div className="w-full max-w-lg">
@@ -198,6 +201,14 @@ const PostDetail = () => {
             postId={post.id}
             onReply={handleCommentReply}
             loading={loading}
+            user={{
+              name: user?.full_name || user?.username || user?.email || "User",
+              username: user?.username || "",
+              avatar:
+                user?.avatar && user?.avatar.length > 0
+                  ? user.avatar
+                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || "User")}&background=0D8ABC&color=fff`
+            }}
             fetchComments={() => {
               fetch(`/api/posts/${id}/comments`)
                 .then(res => res.json())

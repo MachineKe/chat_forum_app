@@ -48,8 +48,15 @@ const Sidebar = ({
       style={style}
     >
       <div className="flex flex-col gap-2 sticky top-6 h-[calc(100vh-3rem)] p-6">
-        {/* EPRA Title */}
-        <Link to="/" className="text-2xl font-bold mb-4 px-4 text-blue-700 tracking-widest">EPRA</Link>
+        {/* EPRA Logo */}
+        <Link to="/" className="mb-4 px-4 flex items-center justify-center">
+          <img
+            src="/epra logo.png"
+            alt="EPRA Logo"
+            className="h-12 w-auto object-contain"
+            style={{ maxWidth: 160 }}
+          />
+        </Link>
         {/* Emoji Nav */}
         <nav className="flex flex-col gap-1">
           {navItems.map((item) =>

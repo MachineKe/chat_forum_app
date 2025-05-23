@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PostCard from "../components/PostCard";
 import TiptapEditor from "../components/TiptapEditor";
@@ -6,61 +6,42 @@ import PostSettingsCard from "../components/PostSettingsCard";
 import Sidebar from "../components/Sidebar";
 import Avatar from "../components/Avatar";
 import PlainText from "../components/PlainText";
-import { VideoPlayerProvider } from "../components/VideoPlayerContext";
+import { MediaPlayerProvider } from "../components/MediaPlayerContext";
+import useUser from "../hooks/useUser";
+import usePosts from "../hooks/usePosts";
 
 const Forum = () => {
   const navigate = useNavigate();
   const [content, setContent] = useState("");
-  const [userId, setUserId] = useState(null);
-  const [username, setUsername] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [userAvatar, setUserAvatar] = useState("");
-  const [posts, setPosts] = useState([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isEditorActive, setIsEditorActive] = useState(false);
+  const [mediaId, setMediaId] = useState(null);
 
-  // On mount, get user from localStorage and fetch user id from backend, and fetch posts
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user && user.email) {
-      fetch(`/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.id) {
-            setUserId(data.id);
-            setUsername(data.username || data.email);
-            console.log("Fetched user avatar:", data.avatar);
-            let avatarUrl = data.avatar || "";
-            if (avatarUrl && !avatarUrl.startsWith("http")) {
-              avatarUrl = `http://localhost:5050/${avatarUrl.replace(/^\/?/, "")}`;
-            }
-            setUserAvatar(avatarUrl);
-            if (data.full_name) {
-              setFullName(data.full_name);
-              setFirstName(data.full_name.split(" ")[0]);
-            } else if (data.username) {
-              setFullName(data.username);
-              setFirstName(data.username.split(" ")[0]);
-            } else if (data.email) {
-              setFullName(data.email);
-              setFirstName(data.email.split("@")[0]);
-            }
-          }
-        });
-    }
-    // Fetch posts from backend
-    fetch("/api/posts")
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          console.log("Fetched post IDs:", data.map(p => p.id));
-          setPosts(data);
-        }
-      });
-  }, []);
+  // Use custom hooks for user and posts
+  const {
+    userId,
+    username,
+    firstName,
+    fullName,
+    userAvatar,
+    loading: userLoading,
+    error: userError,
+  } = useUser();
+
+  const {
+    posts,
+    loading: postsLoading,
+    error: postsError,
+    createPost,
+    setPosts,
+  } = usePosts();
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleMediaUpload = (id) => {
+    setMediaId(id);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,42 +52,26 @@ const Forum = () => {
       setLoading(false);
       return;
     }
-    try {
-      const res = await fetch("/api/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: userId,
-          content,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to create post");
-        setLoading(false);
-        return;
-      }
-      setPosts([
-        {
-          id: data.id,
-          content: data.content,
-          author: data.author || username || "You",
-          createdAt: data.createdAt || new Date().toISOString().slice(0, 10),
-        },
-        ...posts,
-      ]);
-      setContent("");
-      setShowSettings(false);
-      setIsEditorActive(false);
-    } catch (err) {
-      setError("Network error");
+    const data = await createPost({
+      user_id: userId,
+      content,
+      media_id: mediaId || undefined,
+    });
+    if (!data) {
+      setError("Failed to create post");
+      setLoading(false);
+      return;
     }
+    setContent("");
+    setMediaId(null);
+    setShowSettings(false);
+    setIsEditorActive(false);
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
-      <VideoPlayerProvider>
+      <MediaPlayerProvider>
         <div className="max-w-7xl mx-auto flex flex-row justify-center gap-8 pt-6">
           {/* Left Sidebar */}
           <Sidebar title="EPRA" />
@@ -148,6 +113,7 @@ const Forum = () => {
                         ? userAvatar
                         : `https://ui-avatars.com/api/?name=${encodeURIComponent(username || "User")}&background=0D8ABC&color=fff`
                   }}
+                  onMediaUpload={handleMediaUpload} // NEW PROP
                 />
               ) : (
                 <PlainText
@@ -177,6 +143,7 @@ const Forum = () => {
                   createdAt={post.createdAt}
                   commentCount={post.commentCount}
                   viewCount={post.viewCount}
+                  media={post.media}
                 />
               ))}
             </div>
@@ -231,7 +198,7 @@ const Forum = () => {
             </div>
           </aside>
         </div>
-      </VideoPlayerProvider>
+      </MediaPlayerProvider>
     </div>
   );
 };

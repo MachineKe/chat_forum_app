@@ -2,14 +2,14 @@ import React, { useState } from "react";
 import AuthLayout from "../layouts/AuthLayout";
 import Input from "../components/Input";
 import Button from "../components/Button";
-import axios from "axios";
+import { useAuth } from "../hooks/useAuth.jsx";
 
 const Register = () => {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+  const { register } = useAuth();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -20,18 +20,14 @@ const Register = () => {
     setError("");
     setSuccess("");
     setLoading(true);
-    try {
-      const res = await axios.post(`${apiUrl}/auth/register`, form);
-      setSuccess(res.data.message + (res.data.emailToken ? " (Token: " + res.data.emailToken + ")" : ""));
+    const result = await register(form.username, form.email, form.password);
+    if (result.success) {
+      setSuccess(result.message || "Registration successful. Please check your email to verify your account.");
       setForm({ username: "", email: "", password: "" });
-    } catch (err) {
-      setError(
-        err.response?.data?.error ||
-          "Registration failed. Please try again."
-      );
-    } finally {
-      setLoading(false);
+    } else {
+      setError(result.error || "Registration failed. Please try again.");
     }
+    setLoading(false);
   };
 
   return (

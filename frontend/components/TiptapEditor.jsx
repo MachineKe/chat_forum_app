@@ -30,6 +30,83 @@ const Video = Node.create({
   },
 });
 
+
+// Custom Audio extension for Tiptap
+const Audio = Node.create({
+  name: "audio",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      controls: { default: true },
+      style: { default: "max-width:100%" },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "audio" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["audio", mergeAttributes(HTMLAttributes)];
+  },
+  addNodeView() {
+    return ({ node, HTMLAttributes }) => {
+      const audio = document.createElement("audio");
+      audio.setAttribute("controls", "");
+      // Convert style string to object if needed
+      if (HTMLAttributes.style && typeof HTMLAttributes.style === "string") {
+        audio.style.cssText = HTMLAttributes.style;
+      } else {
+        audio.setAttribute("style", "max-width:100%");
+      }
+      if (node.attrs.src) {
+        audio.src = node.attrs.src;
+      }
+      return audio;
+    };
+  },
+});
+
+// Custom PDF Embed extension for Tiptap
+const PDFEmbed = Node.create({
+  name: "pdfembed",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      type: { default: "application/pdf" },
+      style: { default: "width:100%;min-height:400px;border-radius:8px;margin:8px 0;" },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "embed[type='application/pdf']" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["embed", mergeAttributes({ type: "application/pdf" }, HTMLAttributes)];
+  },
+  addNodeView() {
+    return ({ node, HTMLAttributes }) => {
+      const embed = document.createElement("embed");
+      embed.setAttribute("type", "application/pdf");
+      // Convert style string to object if needed
+      if (HTMLAttributes.style && typeof HTMLAttributes.style === "string") {
+        embed.style.cssText = HTMLAttributes.style;
+      } else {
+        embed.setAttribute("style", "width:100%;min-height:400px;border-radius:8px;margin:8px 0;");
+      }
+      if (node.attrs.src) {
+        embed.src = node.attrs.src;
+      }
+      return embed;
+    };
+  },
+});
+
 const toolbarBtn =
   "w-8 h-8 flex items-center justify-center rounded transition-colors border-none outline-none focus:ring-2 focus:ring-blue-500";
 const toolbarBtnActive =
@@ -49,6 +126,7 @@ const TiptapEditor = ({
   onClose,
   actionLabel = "Next",
   user = { name: "User", avatar: "", audience: "Public" },
+  onMediaUpload, // NEW PROP
 }) => {
   const [tab, setTab] = useState("write");
   const editor = useEditor({
@@ -58,6 +136,8 @@ const TiptapEditor = ({
       Image,
       Youtube,
       Video, // Add custom video extension
+      Audio, // Add custom audio extension
+      PDFEmbed, // Add custom PDF embed extension
     ],
     content: value,
     editable,
@@ -190,6 +270,9 @@ const TiptapEditor = ({
                     .then((data) => {
                       if (data.url) {
                         editor.chain().focus().setImage({ src: data.url }).run();
+                        if (data.id && typeof onMediaUpload === "function") {
+                          onMediaUpload(data.id);
+                        }
                       } else {
                         alert("Image upload failed.");
                       }
@@ -209,6 +292,9 @@ const TiptapEditor = ({
                     .then((data) => {
                       if (data.url) {
                         editor.chain().focus().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).run();
+                        if (data.id && typeof onMediaUpload === "function") {
+                          onMediaUpload(data.id);
+                        }
                       } else {
                         alert("Video upload failed.");
                       }
@@ -223,6 +309,52 @@ const TiptapEditor = ({
               }}
             >
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#34D399"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/><path d="M21 15l-5-5L5 21" stroke="#fff" strokeWidth="2"/></svg>
+            </button>
+            {/* Attachment Button */}
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-purple-100 hover:bg-purple-200"
+              title="Attach file (audio, PDF, etc.)"
+              onClick={() => {
+                // Create a hidden file input for audio/pdf/other
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "audio/*,application/pdf";
+                input.onchange = (e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const formData = new FormData();
+                    formData.append("media", file);
+                    fetch("/api/posts/upload-media", {
+                      method: "POST",
+                      body: formData,
+                    })
+                      .then((res) => res.json())
+                      .then((data) => {
+                        if (data.url) {
+                          if (file.type.startsWith("audio/")) {
+                            editor.chain().focus().insertContent(`<audio controls src="${data.url}" style="max-width:100%"></audio>`).run();
+                          } else if (file.type === "application/pdf") {
+                            editor.chain().focus().insertContent(`<embed src="${data.url}" type="application/pdf" style="width:100%;min-height:400px;border-radius:8px;margin:8px 0;" />`).run();
+                          } else {
+                            editor.chain().focus().insertContent(`<a href="${data.url}" target="_blank" rel="noopener noreferrer">${file.name}</a>`).run();
+                          }
+                          if (data.id && typeof onMediaUpload === "function") {
+                            onMediaUpload(data.id);
+                          }
+                        } else {
+                          alert("File upload failed.");
+                        }
+                      })
+                      .catch(() => {
+                        alert("File upload failed.");
+                      });
+                  }
+                };
+                input.click();
+              }}
+            >
+              {/* Paperclip icon */}
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16.5 13.5V7a4.5 4.5 0 0 0-9 0v9a4.5 4.5 0 0 0 9 0V8.5" stroke="#7c3aed" strokeWidth="2" /><rect x="7" y="7" width="10" height="10" rx="5" fill="#ede9fe" /></svg>
             </button>
             <button
               className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 hover:bg-blue-200"
@@ -299,7 +431,7 @@ import MediaPlayer from "./MediaPlayer";
 // Helper to check for media tags in HTML
 function hasMedia(html) {
   if (!html) return false;
-  return /<(img|video|audio)\b/i.test(html);
+  return /<(img|video|audio|embed)\b/i.test(html);
 }
 
 function renderTextBeforeMedia(html) {
@@ -367,16 +499,53 @@ function renderTextBeforeMedia(html) {
         }
         // Handle void elements (e.g., hr, br, input, etc.)
         const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
+        // Helper to convert style string to object
+        function styleStringToObject(styleString) {
+          if (!styleString) return undefined;
+          return styleString.split(";").filter(Boolean).reduce((acc, item) => {
+            const [prop, value] = item.split(":");
+            if (prop && value) {
+              // Convert kebab-case to camelCase
+              const camelProp = prop.trim().replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+              acc[camelProp] = value.trim();
+            }
+            return acc;
+          }, {});
+        }
+        // Build props object, converting style if present
+        function buildProps(node, key) {
+          const props = { key };
+          for (const attr of Array.from(node.attributes)) {
+            if (attr.name === "style") {
+              const styleObj = styleStringToObject(attr.value);
+              if (styleObj) props.style = styleObj;
+            } else {
+              props[attr.name] = attr.value;
+            }
+          }
+          return props;
+        }
         if (voidTags.includes(node.tagName)) {
+          // Special handling for <embed> to ensure style is always an object
+          if (node.tagName === "EMBED") {
+            const props = buildProps(node, key);
+            if (props.style && typeof props.style === "string") {
+              props.style = styleStringToObject(props.style);
+            }
+            return React.createElement(
+              node.tagName.toLowerCase(),
+              props
+            );
+          }
           return React.createElement(
             node.tagName.toLowerCase(),
-            { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) }
+            buildProps(node, key)
           );
         }
         // For other elements, recursively render children
         return React.createElement(
           node.tagName.toLowerCase(),
-          { key, ...Object.fromEntries(Array.from(node.attributes).map(attr => [attr.name, attr.value])) },
+          buildProps(node, key),
           Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
         );
       }

@@ -23,6 +23,7 @@ const CommentThread = ({
   onReply,
   loading = false,
   fetchComments,
+  user,
 }) => {
   // Log comments to check if username is present
   console.log("CommentThread received comments:", comments);
@@ -138,6 +139,16 @@ const CommentThread = ({
             </span>
             <span className="text-gray-400 text-xs">· 1h</span>
           </div>
+          {/* Render media if present (standardized) */}
+          {(comment.media && comment.media.url) || comment.media_path ? (
+            <div className="mb-2">
+              <MediaPlayer
+                src={comment.media && comment.media.url ? comment.media.url : comment.media_path}
+                type={comment.media && comment.media.type ? comment.media.type : comment.media_type}
+                style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+              />
+            </div>
+          ) : null}
           <div className="text-gray-900 text-base mb-2">
             {renderTextBeforeMedia(comment.content)}
           </div>
@@ -229,6 +240,7 @@ const CommentThread = ({
                   placeholder="Reply..."
                   minHeight={40}
                   actionLabel="Reply"
+                  user={user}
                   onNext={() => {
                     if (onReply) onReply(comment.id, commentReplyContent);
                     setCommentReplyContent("");
