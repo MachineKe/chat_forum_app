@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import TiptapEditor from "./TiptapEditor";
+import TiptapEditor, { renderMediaPreviewOnly } from "./TiptapEditor";
+import PlainText from "./PlainText";
 import Avatar from "./Avatar";
 import MediaPlayer from "./MediaPlayer";
 import LikeButton from "./LikeButton";
@@ -32,8 +33,6 @@ const CommentThread = ({
     console.log("CommentThread received comments (raw):", comments);
   }
   const [replyingToCommentId, setReplyingToCommentId] = useState(null);
-  const [commentReplyContent, setCommentReplyContent] = useState("");
-  const [isCommentReplyEditorActive, setIsCommentReplyEditorActive] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
 
   // Group comments by parent_id
@@ -52,16 +51,15 @@ const CommentThread = ({
     onExpand,
     replyingToCommentId,
     setReplyingToCommentId,
-    isCommentReplyEditorActive,
-    setIsCommentReplyEditorActive,
-    commentReplyContent,
-    setCommentReplyContent,
     onReply,
     fetchComments,
     expandedReplies,
     setExpandedReplies,
   }) {
-    // Add per-reply mediaId state
+    // Per-reply editor state
+    const [isReplyEditorActive, setIsReplyEditorActive] = useState(false);
+    const [replyContent, setReplyContent] = useState("");
+    const [replyMedia, setReplyMedia] = useState(null);
     const [replyMediaId, setReplyMediaId] = useState(null);
     const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
     const [liked, setLiked] = useState(comment.liked || false);
@@ -253,11 +251,7 @@ const CommentThread = ({
                       onExpand={onExpand}
                       replyingToCommentId={replyingToCommentId}
                       setReplyingToCommentId={setReplyingToCommentId}
-                      isCommentReplyEditorActive={isCommentReplyEditorActive}
-                      setIsCommentReplyEditorActive={setIsCommentReplyEditorActive}
-                      commentReplyContent={commentReplyContent}
-                      setCommentReplyContent={setCommentReplyContent}
-                      onReply={onReply}
+                                                              onReply={onReply}
                       fetchComments={fetchComments}
                       expandedReplies={expandedReplies}
                       setExpandedReplies={setExpandedReplies}
@@ -269,41 +263,47 @@ const CommentThread = ({
           )}
           {replyingToCommentId === comment.id && (
             <div className="mt-2">
-              {isCommentReplyEditorActive ? (
-                <TiptapEditor
-                  value={commentReplyContent}
-                  onChange={setCommentReplyContent}
-                  placeholder="Reply..."
-                  minHeight={40}
-                  actionLabel="Reply"
-                  user={user}
-                  onMediaUpload={id => setReplyMediaId(id)}
-                  onNext={() => {
-                    if (onReply) onReply(comment.id, commentReplyContent, replyMediaId);
-                    setCommentReplyContent("");
-                    setReplyMediaId(null);
-                    setReplyingToCommentId(null);
-                    setIsCommentReplyEditorActive(false);
-                    if (fetchComments) fetchComments();
-                  }}
-                  onClose={() => {
-                    setReplyingToCommentId(null);
-                    setIsCommentReplyEditorActive(false);
-                    setCommentReplyContent("");
-                    setReplyMediaId(null);
-                  }}
-                />
-              ) : (
-                <div
-                  className="w-full min-h-[32px] px-3 py-2 bg-gray-100 rounded-lg text-gray-700 text-base cursor-text border border-gray-300 hover:bg-gray-200 transition"
-                  style={{ lineHeight: "2.2rem" }}
-                  tabIndex={0}
-                  onFocus={() => setIsCommentReplyEditorActive(true)}
-                  onClick={() => setIsCommentReplyEditorActive(true)}
-                >
-                  {commentReplyContent ? commentReplyContent : <span className="text-gray-400">Reply...</span>}
-                </div>
-              )}
+              <div style={{ minHeight: 120 }}>
+                {isReplyEditorActive ? (
+                  <TiptapEditor
+                    value={replyContent}
+                    onChange={setReplyContent}
+                    placeholder="Reply..."
+                    minHeight={40}
+                    actionLabel="Reply"
+                    user={user}
+                    onMediaUpload={(id, type, url) => {
+                      setReplyMediaId(id);
+                      setReplyMedia({ id, type, url });
+                    }}
+                    onNext={() => {
+                      if (onReply) onReply(comment.id, replyContent, replyMediaId);
+                      setReplyContent("");
+                      setReplyMediaId(null);
+                      setReplyMedia(null);
+                      setReplyingToCommentId(null);
+                      setIsReplyEditorActive(false);
+                      if (fetchComments) fetchComments();
+                    }}
+                    onClose={() => {
+                      setReplyingToCommentId(null);
+                      setIsReplyEditorActive(false);
+                      setReplyContent("");
+                      setReplyMediaId(null);
+                      setReplyMedia(null);
+                    }}
+                    onFocus={() => setIsReplyEditorActive(true)}
+                    className=""
+                    mediaPreview={renderMediaPreviewOnly(replyContent)}
+                  />
+                ) : (
+                  <PlainText
+                    user={user}
+                    placeholder="Reply..."
+                    onClick={() => setIsReplyEditorActive(true)}
+                  />
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -331,10 +331,6 @@ const CommentThread = ({
             onExpand={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: true }))}
             replyingToCommentId={replyingToCommentId}
             setReplyingToCommentId={setReplyingToCommentId}
-            isCommentReplyEditorActive={isCommentReplyEditorActive}
-            setIsCommentReplyEditorActive={setIsCommentReplyEditorActive}
-            commentReplyContent={commentReplyContent}
-            setCommentReplyContent={setCommentReplyContent}
             onReply={onReply}
             fetchComments={fetchComments}
             expandedReplies={expandedReplies}

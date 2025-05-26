@@ -313,6 +313,12 @@ const PostCard = ({
           <FiMoreHorizontal size={20} />
         </button>
       </div>
+      {/* Post content first, then media */}
+      <div className="px-4 pb-2">
+        <div className="text-gray-900 text-base mb-2" style={{ minHeight: 32 }}>
+          {content}
+        </div>
+      </div>
       {/* Media (if present) */}
       {(() => {
         // Enhanced: handle media as object or array, and various field names
@@ -354,12 +360,6 @@ const PostCard = ({
         }
         return null;
       })()}
-      {/* Post content */}
-      <div className="px-4 pb-2">
-        <div className="text-gray-900 text-base mb-2" style={{ minHeight: 32 }}>
-          {renderTextBeforeMedia(content)}
-        </div>
-      </div>
       {/* Like/Comment/View counts row */}
       <div className="flex items-center justify-between px-4 pt-2 pb-1 text-gray-500 text-sm border-b">
         <div className="flex items-center gap-1">
@@ -507,6 +507,7 @@ function Comment({ comment, comments, handleAddComment, user, loading }) {
   const [replyContent, setReplyContent] = useState("");
   const [replyLoading, setReplyLoading] = useState(false);
   const [replyError, setReplyError] = useState("");
+  const [replyMedia, setReplyMedia] = useState(null);
 
   // Use Avatar.tsx for comment author
   // Try to get username from comment.username, fallback to slugified author
@@ -550,38 +551,42 @@ function Comment({ comment, comments, handleAddComment, user, loading }) {
           </a>
           <span>{getRelativeTime(comment.createdAt)}</span>
         </div>
-        {loading ? (
-          <div className="text-gray-400 text-sm mb-2">Loading user...</div>
-        ) : (
-          <form
-            className="mb-2 flex gap-2 items-start"
-            onSubmit={e =>
-              handleAddComment(
-                e,
-                comment.id,
-                replyContent,
-                setReplyLoading,
-                setReplyError,
-                setReplyContent
-              )
-            }
-          >
-            <div className="flex-1">
-              <TiptapEditor
-                value={replyContent}
-                onChange={setReplyContent}
-                placeholder="Reply..."
-                minHeight={40}
-                actionLabel="Reply"
-                user={user}
-              />
-            </div>
-            <Button type="submit" disabled={replyLoading} style={{ height: 40 }}>
-              {replyLoading ? "Posting..." : "Reply"}
-            </Button>
-            {replyError && <div className="text-red-600 mb-2">{replyError}</div>}
-          </form>
-        )}
+        <form
+          className="mb-2 flex gap-2 items-start"
+          onSubmit={e =>
+            handleAddComment(
+              e,
+              comment.id,
+              replyContent,
+              setReplyLoading,
+              setReplyError,
+              setReplyContent
+            )
+          }
+        >
+          <div className="flex-1">
+            <TiptapEditor
+              value={replyContent}
+              onChange={setReplyContent}
+              placeholder="Reply..."
+              minHeight={40}
+              actionLabel="Reply"
+              user={user}
+              loading={loading}
+              onMediaUpload={(mediaId, mediaType) => {
+                // Optionally, you can store mediaId/mediaType for submission
+                setReplyMedia({ mediaId, mediaType });
+              }}
+            />
+            {loading && (
+              <div className="text-gray-400 text-sm mb-2">Loading user...</div>
+            )}
+          </div>
+          <Button type="submit" disabled={replyLoading || loading} style={{ height: 40 }}>
+            {replyLoading ? "Posting..." : "Reply"}
+          </Button>
+          {replyError && <div className="text-red-600 mb-2">{replyError}</div>}
+        </form>
         {renderComments(comments, comment.id, handleAddComment, user, loading)}
       </div>
     </div>
@@ -589,8 +594,103 @@ function Comment({ comment, comments, handleAddComment, user, loading }) {
 }
 
 function renderTextBeforeMedia(content) {
-  // Now content is just text or "+ audio"/"+ video"/"+ pdf"
-  return <span>{content}</span>;
+  try {
+    if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
+      return <span dangerouslySetInnerHTML={{ __html: content }} />;
+    }
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(content, "text/html");
+    const nodes = Array.from(doc.body.childNodes);
+
+    // Collect all text nodes (recursively), and the first media node
+    let allText = "";
+    let firstMediaNode = null;
+
+    function collectTextAndMedia(node) {
+      if (node.nodeType === 3) {
+        allText += node.textContent;
+      } else if (node.nodeType === 1) {
+        if (!firstMediaNode && ["IMG", "VIDEO", "AUDIO", "EMBED"].includes(node.tagName)) {
+          firstMediaNode = node;
+        }
+        // Recursively collect text from children
+        Array.from(node.childNodes).forEach(collectTextAndMedia);
+      }
+    }
+    nodes.forEach(collectTextAndMedia);
+
+    // Helper to convert DOM node to React element
+    function domToReact(node, key) {
+      if (node.nodeType === 3) {
+        return node.textContent;
+      }
+      if (node.nodeType === 1) {
+        if (node.tagName === "IMG") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="image"
+              alt=""
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "VIDEO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="video"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "AUDIO") {
+          const src = node.getAttribute("src");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type="audio"
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        if (node.tagName === "EMBED") {
+          const src = node.getAttribute("src");
+          const type = node.getAttribute("type");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type={type === "application/pdf" ? "pdf" : "document"}
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          );
+        }
+        // For other elements, recursively render children
+        return React.createElement(
+          node.tagName.toLowerCase(),
+          { key },
+          Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
+        );
+      }
+      return null;
+    }
+
+    return (
+      <>
+        {allText && <span>{allText}</span>}
+        {firstMediaNode && domToReact(firstMediaNode, "media-0")}
+      </>
+    );
+  } catch (err) {
+    // Fallback to raw HTML if parsing fails
+    return <span dangerouslySetInnerHTML={{ __html: content }} />;
+  }
 }
 
 export default PostCard;

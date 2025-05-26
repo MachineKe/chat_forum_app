@@ -132,8 +132,27 @@ function renderTextBeforeMedia(html) {
   }
 }
 
-const PostSettingsCard = ({ content, onBack, onPost, loading, user = { name: "User", avatar: "" } }) => {
+function extractFirstMediaFromHtml(html) {
+  if (typeof window === "undefined" || typeof window.DOMParser === "undefined") return null;
+  const parser = new window.DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const node = Array.from(doc.body.querySelectorAll("img,video,audio,embed"))[0];
+  if (!node) return null;
+  if (node.tagName === "IMG") return { url: node.getAttribute("src"), type: "image" };
+  if (node.tagName === "VIDEO") return { url: node.getAttribute("src"), type: "video" };
+  if (node.tagName === "AUDIO") return { url: node.getAttribute("src"), type: "audio" };
+  if (node.tagName === "EMBED") {
+    const type = node.getAttribute("type");
+    return { url: node.getAttribute("src"), type: type === "application/pdf" ? "pdf" : "document" };
+  }
+  return null;
+}
+
+const PostSettingsCard = ({ content, media, onBack, onPost, loading, user = { name: "User", avatar: "" } }) => {
   const [boost, setBoost] = useState(false);
+
+  // Use media prop if present, otherwise extract from content
+  const previewMedia = media || extractFirstMediaFromHtml(content);
 
   return (
     <Card className="w-full p-0 mb-4">
@@ -164,8 +183,21 @@ const PostSettingsCard = ({ content, onBack, onPost, loading, user = { name: "Us
       <div className="px-4 pt-4 pb-2">
         <div className="font-semibold text-gray-900 mb-1">Post preview</div>
         <div className="p-0 text-gray-900 mb-2 min-h-[40px]" style={{ fontSize: 16 }}>
-          {renderTextBeforeMedia(content)}
+          {/* Show only plain text content */}
+          {typeof content === "string"
+            ? content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
+            : ""}
         </div>
+        {previewMedia && (
+          <div className="my-4">
+            <MediaPlayer
+              src={previewMedia.url}
+              type={previewMedia.type}
+              alt=""
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          </div>
+        )}
       </div>
       {/* Schedule post row */}
       <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border-t border-b-0 border-gray-200 mx-4 mt-0 mb-0">

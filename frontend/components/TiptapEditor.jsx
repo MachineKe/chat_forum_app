@@ -127,8 +127,10 @@ const TiptapEditor = ({
   actionLabel = "Next",
   user = { name: "User", avatar: "", audience: "Public" },
   onMediaUpload, // NEW PROP
+  mediaPreview, // NEW PROP: React node to render as media preview
 }) => {
   const [tab, setTab] = useState("write");
+  const [selectedMedia, setSelectedMedia] = useState(null);
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -142,16 +144,27 @@ const TiptapEditor = ({
     content: value,
     editable,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const html = editor.getHTML();
+      console.log("Editor HTML on update:", html);
+      onChange(html);
     },
   });
 
+  // Prevent resetting content on every keystroke (which causes media to disappear)
+  // Only update editor content if value prop changes from outside (e.g., after post submit)
+  const lastValueRef = React.useRef(value);
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+    if (
+      editor &&
+      value !== lastValueRef.current &&
+      value !== editor.getHTML() &&
+      !editor.isFocused // Only update if editor is not focused (i.e., external change)
+    ) {
       editor.commands.setContent(value || "");
+      lastValueRef.current = value;
     }
     // eslint-disable-next-line
-  }, [value]);
+  }, [value, editor]);
 
   if (!editor) return null;
 
@@ -213,6 +226,13 @@ const TiptapEditor = ({
                 padding: 0 !important;
                 min-height: 80px;
               }
+              /* Hide default media previews in the editor */
+              .ProseMirror img,
+              .ProseMirror video,
+              .ProseMirror audio,
+              .ProseMirror embed {
+                display: none !important;
+              }
             `}
           </style>
           {placeholder && !editor.getText() && (
@@ -230,6 +250,19 @@ const TiptapEditor = ({
             </div>
           )}
         </div>
+        {/* Custom MediaPlayer preview */}
+        {mediaPreview ? (
+          <div className="my-4">{mediaPreview}</div>
+        ) : selectedMedia ? (
+          <div className="my-4">
+            <MediaPlayer
+              src={selectedMedia.src}
+              type={selectedMedia.type}
+              alt=""
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
+          </div>
+        ) : null}
         {/* "Tip" and emoji row */}
         <div className="flex items-center gap-2 mt-2 mb-2">
           <button className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-gray-700 text-sm font-medium hover:bg-gray-200">
@@ -269,7 +302,10 @@ const TiptapEditor = ({
                     .then((res) => res.json())
                     .then((data) => {
                       if (data.url) {
-                        editor.chain().focus().setImage({ src: data.url }).run();
+                        // Move cursor to end, insert image, then move cursor after
+                        editor.commands.focus('end');
+                        editor.chain().insertContent(`<img src="${data.url}" />`).focus('end').run();
+                        setSelectedMedia({ src: data.url, type: "image" });
                         if (data.id && typeof onMediaUpload === "function") {
                           onMediaUpload(data.id, "image");
                         }
@@ -291,7 +327,10 @@ const TiptapEditor = ({
                     .then((res) => res.json())
                     .then((data) => {
                       if (data.url) {
-                        editor.chain().focus().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).run();
+                        // Move cursor to end, insert video, then move cursor after
+                        editor.commands.focus('end');
+                        editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
+                        setSelectedMedia({ src: data.url, type: "video" });
                         if (data.id && typeof onMediaUpload === "function") {
                           onMediaUpload(data.id, "video");
                         }
@@ -332,12 +371,18 @@ const TiptapEditor = ({
                       .then((data) => {
                         if (data.url) {
                           if (file.type.startsWith("audio/")) {
-                            editor.chain().focus().insertContent(`<audio controls src="${data.url}" style="max-width:100%"></audio>`).run();
+                            // Move cursor to end, insert audio, then move cursor after
+                            editor.commands.focus('end');
+                            editor.chain().insertContent(`<audio controls src="${data.url}" style="max-width:100%"></audio>`).focus('end').run();
+                            setSelectedMedia({ src: data.url, type: "audio" });
                             if (data.id && typeof onMediaUpload === "function") {
                               onMediaUpload(data.id, "audio");
                             }
                           } else if (file.type === "application/pdf") {
-                            editor.chain().focus().insertContent(`<embed src="${data.url}" type="application/pdf" style="width:100%;min-height:400px;border-radius:8px;margin:8px 0;" />`).run();
+                            // Move cursor to end, insert PDF, then move cursor after
+                            editor.commands.focus('end');
+                            editor.chain().insertContent(`<embed src="${data.url}" type="application/pdf" style="width:100%;min-height:400px;border-radius:8px;margin:8px 0;" />`).focus('end').run();
+                            setSelectedMedia({ src: data.url, type: "pdf" });
                             if (data.id && typeof onMediaUpload === "function") {
                               onMediaUpload(data.id, "pdf");
                             }
@@ -419,7 +464,7 @@ const TiptapEditor = ({
           onClick={() => {
             if ((editor.getText().trim() || hasMedia(editor.getHTML())) && typeof onNext === "function") {
               console.log("Next button clicked, calling onNext");
-              onNext();
+              onNext(selectedMedia);
               // Do NOT clear the editor here; let the parent clear after successful post
             }
           }}
@@ -440,34 +485,31 @@ function hasMedia(html) {
   return /<(img|video|audio|embed)\b/i.test(html);
 }
 
-function renderTextBeforeMedia(html) {
+function renderMediaPreviewOnly(html) {
   try {
     if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
-      return <span dangerouslySetInnerHTML={{ __html: html }} />;
+      return null;
     }
     const parser = new window.DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     const nodes = Array.from(doc.body.childNodes);
 
-    // Separate text and media nodes
-    const textNodes = [];
+    // Only collect media nodes (img, video, audio, embed)
     const mediaNodes = [];
-    nodes.forEach((node, i) => {
+    nodes.forEach((node) => {
       if (
-        node.nodeType === 3 || // Text node
-        (node.nodeType === 1 && node.tagName !== "IMG" && node.tagName !== "VIDEO")
+        node.nodeType === 1 &&
+        (node.tagName === "IMG" ||
+          node.tagName === "VIDEO" ||
+          node.tagName === "AUDIO" ||
+          node.tagName === "EMBED")
       ) {
-        textNodes.push(node);
-      } else if (node.nodeType === 1 && (node.tagName === "IMG" || node.tagName === "VIDEO")) {
         mediaNodes.push(node);
       }
     });
 
     // Helper to convert DOM node to React element
     function domToReact(node, key) {
-      if (node.nodeType === 3) {
-        return node.textContent;
-      }
       if (node.nodeType === 1) {
         if (node.tagName === "IMG") {
           const src = node.getAttribute("src");
@@ -503,71 +545,33 @@ function renderTextBeforeMedia(html) {
             />
           );
         }
-        // Handle void elements (e.g., hr, br, input, etc.)
-        const voidTags = ["HR", "BR", "INPUT", "IMG", "AREA", "BASE", "COL", "EMBED", "LINK", "META", "PARAM", "SOURCE", "TRACK", "WBR"];
-        // Helper to convert style string to object
-        function styleStringToObject(styleString) {
-          if (!styleString) return undefined;
-          return styleString.split(";").filter(Boolean).reduce((acc, item) => {
-            const [prop, value] = item.split(":");
-            if (prop && value) {
-              // Convert kebab-case to camelCase
-              const camelProp = prop.trim().replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-              acc[camelProp] = value.trim();
-            }
-            return acc;
-          }, {});
-        }
-        // Build props object, converting style if present
-        function buildProps(node, key) {
-          const props = { key };
-          for (const attr of Array.from(node.attributes)) {
-            if (attr.name === "style") {
-              const styleObj = styleStringToObject(attr.value);
-              if (styleObj) props.style = styleObj;
-            } else {
-              props[attr.name] = attr.value;
-            }
-          }
-          return props;
-        }
-        if (voidTags.includes(node.tagName)) {
-          // Special handling for <embed> to ensure style is always an object
-          if (node.tagName === "EMBED") {
-            const props = buildProps(node, key);
-            if (props.style && typeof props.style === "string") {
-              props.style = styleStringToObject(props.style);
-            }
-            return React.createElement(
-              node.tagName.toLowerCase(),
-              props
-            );
-          }
-          return React.createElement(
-            node.tagName.toLowerCase(),
-            buildProps(node, key)
+        if (node.tagName === "EMBED") {
+          // PDF or other document
+          const src = node.getAttribute("src");
+          const type = node.getAttribute("type");
+          return (
+            <MediaPlayer
+              key={key}
+              src={src}
+              type={type === "application/pdf" ? "pdf" : "document"}
+              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+            />
           );
         }
-        // For other elements, recursively render children
-        return React.createElement(
-          node.tagName.toLowerCase(),
-          buildProps(node, key),
-          Array.from(node.childNodes).map((child, idx) => domToReact(child, `${key}-${idx}`))
-        );
       }
       return null;
     }
 
     return (
       <>
-        {textNodes.map((node, i) => domToReact(node, `text-${i}`))}
         {mediaNodes.map((node, i) => domToReact(node, `media-${i}`))}
       </>
     );
   } catch (err) {
-    // Fallback to raw HTML if parsing fails
-    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    // Fallback: show nothing if parsing fails
+    return null;
   }
 }
 
 export default TiptapEditor;
+export { renderMediaPreviewOnly };

@@ -113,31 +113,38 @@ exports.addCommentToPost = async (req, res) => {
       const match = text.match(audioRegex);
       type = "audio";
       path = match[1];
-      text = ""; // Remove marker from content
-    } else if (videoRegex.test(text)) {
+    }
+    if (videoRegex.test(text)) {
       const match = text.match(videoRegex);
       type = "video";
       path = match[1];
-      text = "";
-    } else if (pdfRegex.test(text)) {
+    }
+    if (pdfRegex.test(text)) {
       const match = text.match(pdfRegex);
       type = "pdf";
       path = match[1];
-      text = "";
-    } else if (imgRegex.test(text)) {
+    }
+    if (imgRegex.test(text)) {
       const match = text.match(imgRegex);
       type = "image";
       path = match[1];
-      text = "";
-    } else if (type && path) {
-      // If type/path provided, leave text as is (no marker)
-    } else {
-      // Remove any HTML tags, keep only text
-      text = text.replace(/<[^>]+>/g, "").trim();
+    }
+    // Always extract plain text from the HTML, regardless of media
+    const originalHtml = text;
+    // Use DOMParser for robust plain text extraction
+    let plainText = "";
+    try {
+      const { JSDOM } = require("jsdom");
+      const dom = new JSDOM(`<body>${text}</body>`);
+      plainText = dom.window.document.body.textContent || "";
+    } catch (e) {
+      // Fallback to regex if jsdom is not available
+      plainText = text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     }
     // Remove any "+ audio", "+ video", "+ pdf" markers from text
-    text = text.replace(/^\s*\+\s*(audio|video|pdf)\s*$/i, "").trim();
-    return { text, type, path };
+    plainText = plainText.replace(/^\s*\+\s*(audio|video|pdf)\s*$/i, "").trim();
+    console.log("parseContentAndMedia: received content:", originalHtml, "extracted text:", plainText, "type:", type, "path:", path);
+    return { text: plainText, type, path };
   }
 
   try {
@@ -342,31 +349,37 @@ exports.createPost = async (req, res) => {
       const match = text.match(audioRegex);
       type = "audio";
       path = match[1];
-      text = ""; // Remove marker from content
-    } else if (videoRegex.test(text)) {
+    }
+    if (videoRegex.test(text)) {
       const match = text.match(videoRegex);
       type = "video";
       path = match[1];
-      text = "";
-    } else if (pdfRegex.test(text)) {
+    }
+    if (pdfRegex.test(text)) {
       const match = text.match(pdfRegex);
       type = "pdf";
       path = match[1];
-      text = "";
-    } else if (imgRegex.test(text)) {
+    }
+    if (imgRegex.test(text)) {
       const match = text.match(imgRegex);
       type = "image";
       path = match[1];
-      text = "";
-    } else if (type && path) {
-      // If type/path provided, leave text as is (no marker)
-    } else {
-      // Remove any HTML tags, keep only text
-      text = text.replace(/<[^>]+>/g, "").trim();
+    }
+    // Always extract plain text from the HTML, regardless of media
+    const originalHtml = text;
+    let plainText = "";
+    try {
+      const { JSDOM } = require("jsdom");
+      const dom = new JSDOM(`<body>${text}</body>`);
+      plainText = dom.window.document.body.textContent || "";
+    } catch (e) {
+      // Fallback to regex if jsdom is not available
+      plainText = text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     }
     // Remove any "+ audio", "+ video", "+ pdf" markers from text
-    text = text.replace(/^\s*\+\s*(audio|video|pdf)\s*$/i, "").trim();
-    return { text, type, path };
+    plainText = plainText.replace(/^\s*\+\s*(audio|video|pdf)\s*$/i, "").trim();
+    console.log("parseContentAndMedia (post): received content:", originalHtml, "extracted text:", plainText, "type:", type, "path:", path);
+    return { text: plainText, type, path };
   }
 
   // Allow post if content has text or any media info

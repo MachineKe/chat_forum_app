@@ -16,6 +16,7 @@ const Forum = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [isEditorActive, setIsEditorActive] = useState(false);
   const [mediaId, setMediaId] = useState(null);
+  const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaType, setMediaType] = useState(null);
 
   // Use custom hooks for user and posts
@@ -70,6 +71,7 @@ const Forum = () => {
     setMediaType(null);
     setShowSettings(false);
     setIsEditorActive(false);
+    setSelectedMedia(null);
     setLoading(false);
   };
 
@@ -83,6 +85,11 @@ const Forum = () => {
               <PostSettingsCard
                 key="post-settings"
                 content={content}
+                media={
+                  selectedMedia
+                    ? { url: selectedMedia.src, type: selectedMedia.type }
+                    : null
+                }
                 onBack={() => setShowSettings(false)}
                 onPost={handleSubmit}
                 loading={loading}
@@ -102,7 +109,10 @@ const Forum = () => {
                   onChange={setContent}
                   placeholder="What's happening?"
                   minHeight={80}
-                  onNext={() => setShowSettings(true)}
+                  onNext={(media) => {
+                    setSelectedMedia(media);
+                    setShowSettings(true);
+                  }}
                   onBlur={() => {
                     if (!content.trim()) setIsEditorActive(false);
                   }}
