@@ -22,6 +22,11 @@ const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: ""
   },
+  banner: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    defaultValue: ""
+  },
   username: {
     type: DataTypes.STRING(50),
     allowNull: false

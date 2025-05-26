@@ -17,8 +17,27 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Multer setup for banner uploads
+const bannerStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const bannerDir = path.join(__dirname, "../public/uploads/banner");
+    // Ensure the directory exists
+    require("fs").mkdirSync(bannerDir, { recursive: true });
+    cb(null, bannerDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const name = "banner-" + Date.now() + ext;
+    cb(null, name);
+  },
+});
+const bannerUpload = multer({ storage: bannerStorage });
+
 // POST /api/auth/upload-avatar
 router.post("/upload-avatar", upload.single("avatar"), authController.uploadAvatar);
+
+// POST /api/auth/upload-banner
+router.post("/upload-banner", bannerUpload.single("banner"), authController.uploadBanner);
 
 
 // GET /api/auth/user-by-email

@@ -148,6 +148,7 @@ exports.getProfile = async (req, res) => {
       username: user.username,
       email: user.email,
       avatar: user.avatar || "",
+      banner: user.banner || "",
       bio: user.bio || "",
       followers,
       following,
@@ -171,6 +172,7 @@ exports.updateProfile = async (req, res) => {
     if (full_name !== undefined) user.full_name = full_name;
     if (email !== undefined) user.email = email;
     if (avatar !== undefined) user.avatar = avatar;
+    if (req.body.banner !== undefined) user.banner = req.body.banner;
     if (req.body.bio !== undefined) user.bio = req.body.bio;
     await user.save();
     return res.json({
@@ -179,6 +181,7 @@ exports.updateProfile = async (req, res) => {
       username: user.username,
       email: user.email,
       avatar: user.avatar || "",
+      banner: user.banner || "",
       bio: user.bio || "",
     });
   } catch (err) {
@@ -223,5 +226,15 @@ exports.updateProfile = async (req, res) => {
     }
     // Return the URL to the uploaded file
     const fileUrl = `/uploads/${req.file.filename}`;
+    return res.json({ url: fileUrl });
+  };
+
+  // POST /api/auth/upload-banner
+  exports.uploadBanner = async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded." });
+    }
+    // Return the URL to the uploaded banner file
+    const fileUrl = `/uploads/banner/${req.file.filename}`;
     return res.json({ url: fileUrl });
   };
