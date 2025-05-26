@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Avatar from "../components/Avatar";
+import ProfileHeader from "../components/ProfileHeader";
+import Banner from "../components/Banner";
 
 const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff";
 
@@ -11,6 +13,7 @@ const Profile = () => {
     full_name: "",
     email: "",
     avatar: "",
+    banner: "",
     bio: "",
   });
   const [password, setPassword] = useState("");
@@ -31,8 +34,10 @@ const Profile = () => {
             setUser({
               id: data.id,
               full_name: data.full_name || "",
+              username: data.username || "",
               email: data.email || "",
               avatar: data.avatar || "",
+              banner: data.banner || "",
               bio: data.bio || "",
             });
             // Update localStorage with id for future use
@@ -72,6 +77,29 @@ const Profile = () => {
     }
   };
 
+  const handleBannerChange = async (file) => {
+    if (file) {
+      // Upload to backend
+      const formData = new FormData();
+      formData.append("banner", file);
+      try {
+        const res = await fetch("/api/auth/upload-banner", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) {
+          throw new Error("Failed to upload banner");
+        }
+        const data = await res.json();
+        if (data.url) {
+          setUser(prev => ({ ...prev, banner: data.url }));
+        }
+      } catch (err) {
+        setUser(prev => ({ ...prev, banner: URL.createObjectURL(file) }));
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -88,6 +116,7 @@ const Profile = () => {
           full_name: user.full_name,
           email: user.email,
           avatar: user.avatar,
+          banner: user.banner,
           bio: user.bio,
         }),
       });
@@ -104,6 +133,7 @@ const Profile = () => {
         full_name: updated.full_name,
         email: updated.email,
         avatar: updated.avatar,
+        banner: updated.banner,
         bio: updated.bio || "",
       });
       setSuccess("Profile updated successfully.");
@@ -136,30 +166,78 @@ const Profile = () => {
         <Sidebar title="EPRA" />
         {/* Center Profile Management */}
         <main className="flex-1 max-w-xl w-full">
+          {/* Back Button */}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-gray-700 hover:text-blue-600 font-semibold mb-2 px-2 py-1 rounded transition-colors"
+            style={{ background: "transparent", border: "none", outline: "none", cursor: "pointer" }}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          {/* Profile Header with Banner */}
+          <ProfileHeader
+            avatar={user.avatar || mockAvatar}
+            fullName={user.full_name}
+            username={user.username}
+            bio={user.bio}
+            banner={user.banner}
+            // Do not pass isOwnProfile or onEdit, so edit button is hidden in edit profile section
+          />
           <div className="bg-white rounded-2xl shadow p-8 mt-4">
             <h2 className="text-2xl font-bold mb-6">Profile Management</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="flex items-center gap-4">
-                <Avatar
-                  src={user.avatar || mockAvatar}
-                  alt="Avatar"
-                  size={80}
-                  className="w-20 h-20 rounded-full object-cover border"
-                  profileUrl={
-                    user.username
-                      ? `${window.location.origin}/user/${user.username}`
-                      : undefined
-                  }
-                />
-                <label className="block">
-                  <span className="text-sm font-medium text-gray-700">Change Avatar</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="block mt-1"
-                    onChange={handleAvatarChange}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col items-center">
+                  <Avatar
+                    src={user.avatar || mockAvatar}
+                    alt="Avatar"
+                    size={80}
+                    className="w-20 h-20 rounded-full object-cover border"
+                    profileUrl={
+                      user.username
+                        ? `${window.location.origin}/user/${user.username}`
+                        : undefined
+                    }
                   />
-                </label>
+                  <label className="block mt-2">
+                    <span className="text-sm font-medium text-gray-700">Change Avatar</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="block mt-1"
+                      onChange={handleAvatarChange}
+                    />
+                  </label>
+                </div>
+                <div className="flex flex-col items-center">
+                  {user.banner && (
+                    <div className="w-full max-w-xs overflow-hidden">
+                      <Banner
+                        src={user.banner}
+                        alt="Banner"
+                        className="mb-2"
+                        style={{ width: "100%", height: 96, maxWidth: "100%" }}
+                      />
+                    </div>
+                  )}
+                  <label className="block mt-2 w-full">
+                    <span className="text-sm font-medium text-gray-700">Change Banner</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="block mt-1"
+                      onChange={e => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleBannerChange(e.target.files[0]);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Full Name</label>

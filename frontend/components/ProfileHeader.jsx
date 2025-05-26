@@ -1,5 +1,6 @@
 import React from "react";
 import Avatar from "./Avatar";
+import Banner from "./Banner";
 
 /**
  * ProfileHeader component for displaying user profile info.
@@ -27,11 +28,11 @@ const ProfileHeader = ({
     {/* Banner */}
     <div className="relative h-48 bg-gray-200">
       {banner && (
-        <img
+        <Banner
           src={banner}
           alt="Banner"
-          className="object-cover w-full h-full"
-          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+          className="w-full h-full"
+          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0, width: "100%", height: "100%" }}
         />
       )}
       {/* Profile avatar */}
