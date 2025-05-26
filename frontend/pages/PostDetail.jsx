@@ -5,6 +5,7 @@ import PostCard from "../components/PostCard";
 import CommentThread from "../components/CommentThread";
 import PlainText from "../components/PlainText";
 import TiptapEditor from "../components/TiptapEditor";
+import BackButton from "../components/BackButton";
 
 const PostDetail = () => {
   const { id } = useParams();
@@ -13,7 +14,12 @@ const PostDetail = () => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
+  const [replyMediaId, setReplyMediaId] = useState(null);
+  const [replyMediaType, setReplyMediaType] = useState(null);
   const [isReplyEditorActive, setIsReplyEditorActive] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyMediaIds, setReplyMediaIds] = useState({});
+  const [replyMediaTypes, setReplyMediaTypes] = useState({});
 
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -33,7 +39,7 @@ const PostDetail = () => {
   }, [id]);
 
   async function handleReply() {
-    if (!reply.trim()) return;
+    if (!reply.trim() && !replyMediaId) return;
     if (!user || !user.email) {
       alert("You must be logged in to reply.");
       return;
@@ -61,6 +67,8 @@ const PostDetail = () => {
           user_id: userId,
           content: reply,
           parent_id: null,
+          media_id: replyMediaId || undefined,
+          media_type: replyMediaType || undefined
         }),
       });
       if (!res.ok) {
@@ -68,6 +76,8 @@ const PostDetail = () => {
         return;
       }
       setReply("");
+      setReplyMediaId(null);
+      setReplyMediaType(null);
       setIsReplyEditorActive(false);
       fetch(`/api/posts/${id}/comments`)
         .then(res => res.json())
@@ -79,8 +89,8 @@ const PostDetail = () => {
     }
   }
 
-  async function handleCommentReply(parentId, content) {
-    if (!content.trim()) return;
+  async function handleCommentReply(parentId, content, mediaId, mediaType) {
+    if (!content.trim() && !mediaId) return;
     if (!user || !user.email) {
       alert("You must be logged in to reply.");
       return;
@@ -108,6 +118,8 @@ const PostDetail = () => {
           user_id: userId,
           content,
           parent_id: parentId,
+          media_id: mediaId || undefined,
+          media_type: mediaType || replyMediaTypes[parentId] || undefined
         }),
       });
       if (!res.ok) {
@@ -133,16 +145,7 @@ const PostDetail = () => {
         <Sidebar title="EPRA" />
         <main className="flex-1 max-w-xl w-full">
           <div className="w-full flex items-center px-4 py-3 border-b sticky top-0 bg-white z-10">
-            <button
-              className="mr-2 text-gray-700 hover:bg-gray-100 rounded-full p-2"
-              onClick={() => navigate(-1)}
-              aria-label="Back"
-            >
-              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div className="font-bold text-lg">Post</div>
+            <BackButton label="Post" />
           </div>
           <PostCard
             id={post.id}
@@ -158,6 +161,7 @@ const PostDetail = () => {
             media={post.media}
             media_type={post.media_type}
             media_path={post.media_path}
+            user={user}
           />
           <div className="flex justify-center px-4 py-4 border-b">
             <div className="w-full max-w-lg">
@@ -176,8 +180,14 @@ const PostDetail = () => {
                         ? user.avatar
                         : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || "User")}&background=0D8ABC&color=fff`
                   }}
+                  onMediaUpload={(id, type) => {
+                    setReplyMediaId(id);
+                    setReplyMediaType(type);
+                  }}
                   onClose={() => {
                     setReply("");
+                    setReplyMediaId(null);
+                    setReplyMediaType(null);
                     setIsReplyEditorActive(false);
                   }}
                 />
@@ -197,7 +207,57 @@ const PostDetail = () => {
             </div>
           </div>
           <CommentThread
-            comments={comments}
+            comments={comments.map((c, idx) => {
+              // Robustly extract media meta for every comment
+              let mediaObj = c.media;
+              let mediaType = c.media_type || null;
+              let mediaPath = c.media_path || null;
+
+              // If media is an array, use the first item
+              if (Array.isArray(mediaObj) && mediaObj.length > 0) {
+                mediaObj = mediaObj[0];
+              }
+              if (!mediaType && mediaObj) {
+                mediaType =
+                  mediaObj.media_type ||
+                  mediaObj.mediaType ||
+                  mediaObj.type ||
+                  null;
+              }
+              if (!mediaPath && mediaObj) {
+                mediaPath =
+                  mediaObj.media_path ||
+                  mediaObj.mediaPath ||
+                  mediaObj.path ||
+                  mediaObj.url ||
+                  null;
+              }
+
+              // If this is the root comment and matches the post, merge post media fields
+              const isRoot = !c.parent_id || c.parent_id === null || c.parent_id === undefined;
+              const isPostComment = isRoot && (c.id === post.id || idx === 0);
+
+              return {
+                ...c,
+                author: c.author || c.username || c.email || "User",
+                username: c.username || (c.author ? c.author.replace(/\s+/g, "").toLowerCase() : ""),
+                avatar:
+                  c.avatar && c.avatar.length > 0
+                    ? c.avatar
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        c.author || c.username || "User"
+                      )}&background=0D8ABC&color=fff`,
+                media: isPostComment
+                  ? c.media || post.media
+                  : c.media,
+                media_type: isPostComment
+                  ? c.media_type || post.media_type || mediaType
+                  : c.media_type || mediaType,
+                media_path: isPostComment
+                  ? c.media_path || post.media_path || mediaPath
+                  : c.media_path || mediaPath
+              };
+            })}
             postId={post.id}
             onReply={handleCommentReply}
             loading={loading}

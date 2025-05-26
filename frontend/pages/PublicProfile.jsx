@@ -4,6 +4,7 @@ import PostCard from "../components/PostCard";
 import Sidebar from "../components/Sidebar";
 import Avatar from "../components/Avatar";
 import ProfileHeader from "../components/ProfileHeader";
+import BackButton from "../components/BackButton";
 
 const mockBanner =
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80";
@@ -25,24 +26,26 @@ const PublicProfile = () => {
       .then((data) => {
         setUser(data);
         setLoading(false);
-      });
-    // Fetch posts by user
-    fetch(`/api/posts?username=${encodeURIComponent(username)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setPosts(data);
-      });
-    // Fetch posts user has commented on (Replies tab)
-    fetch(`/api/posts?commented_by=${encodeURIComponent(username)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setReplies(data);
-      });
-    // Fetch liked posts by user
-    fetch(`/api/posts?liked_by=${encodeURIComponent(username)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setLikes(data);
+        if (data && data.id) {
+          // Fetch posts by user id
+          fetch(`/api/posts?user_id=${data.id}`)
+            .then((res) => res.json())
+            .then((postsData) => {
+              if (Array.isArray(postsData)) setPosts(postsData);
+            });
+          // Fetch posts user has commented on (Replies tab)
+          fetch(`/api/posts?commented_by=${encodeURIComponent(username)}`)
+            .then((res) => res.json())
+            .then((repliesData) => {
+              if (Array.isArray(repliesData)) setReplies(repliesData);
+            });
+          // Fetch liked posts by user
+          fetch(`/api/posts?liked_by=${encodeURIComponent(username)}`)
+            .then((res) => res.json())
+            .then((likesData) => {
+              if (Array.isArray(likesData)) setLikes(likesData);
+            });
+        }
       });
   }, [username]);
 
@@ -68,6 +71,9 @@ const PublicProfile = () => {
         {/* Center Profile */}
         <main className="flex-1 flex flex-col items-center">
           <div className="w-full max-w-xl">
+            <div className="w-full flex items-center px-4 py-3 border-b bg-white sticky top-0 z-10">
+              <BackButton label="Profile" />
+            </div>
             <ProfileHeader
               avatar={avatar}
               fullName={user.full_name}
@@ -150,11 +156,15 @@ const PublicProfile = () => {
                       key={post.id}
                       id={post.id}
                       content={post.content}
-                      author={user.full_name}
-                      avatar={avatar}
+                      author={post.author}
+                      avatar={post.avatar}
                       createdAt={post.createdAt}
                       commentCount={post.commentCount}
                       viewCount={post.viewCount}
+                      media={post.media}
+                      media_type={post.media_type}
+                      media_path={post.media_path}
+                      user={user}
                     />
                   ))
                 )
@@ -168,11 +178,15 @@ const PublicProfile = () => {
                       key={reply.id}
                       id={reply.id}
                       content={reply.content}
-                      author={user.full_name}
-                      avatar={avatar}
+                      author={reply.author}
+                      avatar={reply.avatar}
                       createdAt={reply.createdAt}
                       commentCount={reply.commentCount}
                       viewCount={reply.viewCount}
+                      media={reply.media}
+                      media_type={reply.media_type}
+                      media_path={reply.media_path}
+                      user={user}
                     />
                   ))
                 )
@@ -184,21 +198,37 @@ const PublicProfile = () => {
                 <div className="text-gray-400 text-center py-8">No articles yet.</div>
               )}
               {activeTab === "Media" && (
-                posts.filter((p) => /<img|<video/i.test(p.content)).length === 0 ? (
+                posts.filter(
+                  (p) =>
+                    /<img|<video/i.test(p.content) ||
+                    p.media ||
+                    p.media_type ||
+                    p.media_path
+                ).length === 0 ? (
                   <div className="text-gray-400 text-center py-8">No media posts yet.</div>
                 ) : (
                   posts
-                    .filter((p) => /<img|<video/i.test(p.content))
+                    .filter(
+                      (p) =>
+                        /<img|<video/i.test(p.content) ||
+                        p.media ||
+                        p.media_type ||
+                        p.media_path
+                    )
                     .map((post) => (
                       <PostCard
                         key={post.id}
                         id={post.id}
                         content={post.content}
-                        author={user.full_name}
-                        avatar={avatar}
+                        author={post.author}
+                        avatar={post.avatar}
                         createdAt={post.createdAt}
                         commentCount={post.commentCount}
                         viewCount={post.viewCount}
+                        media={post.media}
+                        media_type={post.media_type}
+                        media_path={post.media_path}
+                        user={user}
                       />
                     ))
                 )
@@ -217,6 +247,10 @@ const PublicProfile = () => {
                       createdAt={post.createdAt}
                       commentCount={post.commentCount}
                       viewCount={post.viewCount}
+                      media={post.media}
+                      media_type={post.media_type}
+                      media_path={post.media_path}
+                      user={user}
                     />
                   ))
                 )

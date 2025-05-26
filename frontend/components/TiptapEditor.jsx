@@ -271,7 +271,7 @@ const TiptapEditor = ({
                       if (data.url) {
                         editor.chain().focus().setImage({ src: data.url }).run();
                         if (data.id && typeof onMediaUpload === "function") {
-                          onMediaUpload(data.id);
+                          onMediaUpload(data.id, "image");
                         }
                       } else {
                         alert("Image upload failed.");
@@ -293,7 +293,7 @@ const TiptapEditor = ({
                       if (data.url) {
                         editor.chain().focus().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).run();
                         if (data.id && typeof onMediaUpload === "function") {
-                          onMediaUpload(data.id);
+                          onMediaUpload(data.id, "video");
                         }
                       } else {
                         alert("Video upload failed.");
@@ -333,13 +333,19 @@ const TiptapEditor = ({
                         if (data.url) {
                           if (file.type.startsWith("audio/")) {
                             editor.chain().focus().insertContent(`<audio controls src="${data.url}" style="max-width:100%"></audio>`).run();
+                            if (data.id && typeof onMediaUpload === "function") {
+                              onMediaUpload(data.id, "audio");
+                            }
                           } else if (file.type === "application/pdf") {
                             editor.chain().focus().insertContent(`<embed src="${data.url}" type="application/pdf" style="width:100%;min-height:400px;border-radius:8px;margin:8px 0;" />`).run();
+                            if (data.id && typeof onMediaUpload === "function") {
+                              onMediaUpload(data.id, "pdf");
+                            }
                           } else {
                             editor.chain().focus().insertContent(`<a href="${data.url}" target="_blank" rel="noopener noreferrer">${file.name}</a>`).run();
-                          }
-                          if (data.id && typeof onMediaUpload === "function") {
-                            onMediaUpload(data.id);
+                            if (data.id && typeof onMediaUpload === "function") {
+                              onMediaUpload(data.id, file.type.split("/")[0]);
+                            }
                           }
                         } else {
                           alert("File upload failed.");

@@ -25,8 +25,12 @@ const CommentThread = ({
   fetchComments,
   user,
 }) => {
-  // Log comments to check if username is present
-  console.log("CommentThread received comments:", comments);
+  // Log comments to check if username and media are present
+  try {
+    console.log("CommentThread received comments:", JSON.stringify(comments, null, 2));
+  } catch (e) {
+    console.log("CommentThread received comments (raw):", comments);
+  }
   const [replyingToCommentId, setReplyingToCommentId] = useState(null);
   const [commentReplyContent, setCommentReplyContent] = useState("");
   const [isCommentReplyEditorActive, setIsCommentReplyEditorActive] = useState(false);
@@ -57,6 +61,8 @@ const CommentThread = ({
     expandedReplies,
     setExpandedReplies,
   }) {
+    // Add per-reply mediaId state
+    const [replyMediaId, setReplyMediaId] = useState(null);
     const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
     const [liked, setLiked] = useState(comment.liked || false);
     const [likeLoading, setLikeLoading] = useState(false);
@@ -139,16 +145,46 @@ const CommentThread = ({
             </span>
             <span className="text-gray-400 text-xs">· 1h</span>
           </div>
-          {/* Render media if present (standardized) */}
-          {(comment.media && comment.media.url) || comment.media_path ? (
-            <div className="mb-2">
-              <MediaPlayer
-                src={comment.media && comment.media.url ? comment.media.url : comment.media_path}
-                type={comment.media && comment.media.type ? comment.media.type : comment.media_type}
-                style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
-              />
-            </div>
-          ) : null}
+          {/* Render media if present (robust extraction) */}
+          {(() => {
+            // Robust extraction: handle media as object, array, or direct fields
+            let mediaObj = comment.media;
+            let mediaType = comment.media_type || null;
+            let mediaPath = comment.media_path || null;
+
+            // If media is an array, use the first item
+            if (Array.isArray(mediaObj) && mediaObj.length > 0) {
+              mediaObj = mediaObj[0];
+            }
+            if (!mediaType && mediaObj) {
+              mediaType =
+                mediaObj.media_type ||
+                mediaObj.mediaType ||
+                mediaObj.type ||
+                null;
+            }
+            if (!mediaPath && mediaObj) {
+              mediaPath =
+                mediaObj.media_path ||
+                mediaObj.mediaPath ||
+                mediaObj.path ||
+                mediaObj.url ||
+                null;
+            }
+
+            if (mediaPath && mediaType) {
+              return (
+                <div className="mb-2">
+                  <MediaPlayer
+                    src={mediaPath}
+                    type={mediaType}
+                    style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+                  />
+                </div>
+              );
+            }
+            return null;
+          })()}
           <div className="text-gray-900 text-base mb-2">
             {renderTextBeforeMedia(comment.content)}
           </div>
@@ -241,9 +277,11 @@ const CommentThread = ({
                   minHeight={40}
                   actionLabel="Reply"
                   user={user}
+                  onMediaUpload={id => setReplyMediaId(id)}
                   onNext={() => {
-                    if (onReply) onReply(comment.id, commentReplyContent);
+                    if (onReply) onReply(comment.id, commentReplyContent, replyMediaId);
                     setCommentReplyContent("");
+                    setReplyMediaId(null);
                     setReplyingToCommentId(null);
                     setIsCommentReplyEditorActive(false);
                     if (fetchComments) fetchComments();
@@ -252,6 +290,7 @@ const CommentThread = ({
                     setReplyingToCommentId(null);
                     setIsCommentReplyEditorActive(false);
                     setCommentReplyContent("");
+                    setReplyMediaId(null);
                   }}
                 />
               ) : (

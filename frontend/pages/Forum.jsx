@@ -16,6 +16,7 @@ const Forum = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [isEditorActive, setIsEditorActive] = useState(false);
   const [mediaId, setMediaId] = useState(null);
+  const [mediaType, setMediaType] = useState(null);
 
   // Use custom hooks for user and posts
   const {
@@ -39,8 +40,9 @@ const Forum = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleMediaUpload = (id) => {
+  const handleMediaUpload = (id, type) => {
     setMediaId(id);
+    setMediaType(type);
   };
 
   const handleSubmit = async (e) => {
@@ -56,6 +58,7 @@ const Forum = () => {
       user_id: userId,
       content,
       media_id: mediaId || undefined,
+      media_type: mediaType || undefined,
     });
     if (!data) {
       setError("Failed to create post");
@@ -64,6 +67,7 @@ const Forum = () => {
     }
     setContent("");
     setMediaId(null);
+    setMediaType(null);
     setShowSettings(false);
     setIsEditorActive(false);
     setLoading(false);
@@ -144,6 +148,11 @@ const Forum = () => {
                   commentCount={post.commentCount}
                   viewCount={post.viewCount}
                   media={post.media}
+                  user={{
+                    full_name: fullName,
+                    username,
+                    avatar: userAvatar
+                  }}
                 />
               ))}
             </div>

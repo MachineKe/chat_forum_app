@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import Avatar from "../components/Avatar";
 import ProfileHeader from "../components/ProfileHeader";
 import Banner from "../components/Banner";
+import BackButton from "../components/BackButton";
 
 const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff";
 
@@ -166,18 +167,10 @@ const Profile = () => {
         <Sidebar title="EPRA" />
         {/* Center Profile Management */}
         <main className="flex-1 max-w-xl w-full">
-          {/* Back Button */}
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-700 hover:text-blue-600 font-semibold mb-2 px-2 py-1 rounded transition-colors"
-            style={{ background: "transparent", border: "none", outline: "none", cursor: "pointer" }}
-          >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </button>
+          {/* Header with Back Button and border */}
+          <div className="w-full flex items-center px-4 py-3 border-b bg-white">
+            <BackButton label="Profile" />
+          </div>
           {/* Profile Header with Banner */}
           <ProfileHeader
             avatar={user.avatar || mockAvatar}

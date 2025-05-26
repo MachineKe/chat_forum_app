@@ -27,17 +27,18 @@ import useUser from "../hooks/useUser";
 const PostCard = ({
   id,
   content,
-  author,
-  avatar,
+  author: propAuthor,
+  avatar: propAvatar,
   createdAt,
   alwaysShowComments,
   commentCount,
   viewCount,
   username,
   isSingleView,
-  media,
+  media: propMedia,
   media_type: propMediaType,
-  media_path: propMediaPath
+  media_path: propMediaPath,
+  user // new: profile user object for fallbacks
 }) => {
   const navigate = useNavigate();
   const [comments, setComments] = useState([]);
@@ -76,8 +77,28 @@ const PostCard = ({
   }, [id]);
 
   // Get current user id
-  const user = JSON.parse(localStorage.getItem("user"));
-  const userId = user?.id;
+  const loggedInUser = JSON.parse(localStorage.getItem("user"));
+  const userId = loggedInUser?.id;
+
+  // Fallback logic for author, avatar, media fields
+  const author =
+    propAuthor ||
+    (user && (user.full_name || user.username)) ||
+    "User";
+  const avatar =
+    propAvatar ||
+    (user && user.avatar && user.avatar.length > 0
+      ? user.avatar.startsWith("http")
+        ? user.avatar
+        : `http://localhost:5050/${user.avatar.replace(/^\/?/, "")}`
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          (user && (user.full_name || user.username)) || "User"
+        )}&background=0D8ABC&color=fff`);
+  const media = propMedia;
+  const media_type = propMediaType || (media && (media.media_type || media.mediaType || media.type));
+  const media_path =
+    propMediaPath ||
+    (media && (media.media_path || media.mediaPath || media.path || media.url));
 
   useEffect(() => {
     // Fetch like count and liked status
@@ -295,8 +316,8 @@ const PostCard = ({
       {/* Media (if present) */}
       {(() => {
         // Enhanced: handle media as object or array, and various field names
-        let mediaType = propMediaType || null;
-        let mediaPath = propMediaPath || null;
+        let mediaType = media_type || null;
+        let mediaPath = media_path || null;
         let mediaObj = media;
 
         // If media is an array, use the first item
