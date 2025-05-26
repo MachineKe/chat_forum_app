@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 import Avatar from "../components/Avatar";
 import ProfileHeader from "../components/ProfileHeader";
 import Banner from "../components/Banner";
@@ -162,11 +161,8 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="max-w-7xl mx-auto flex flex-row justify-center gap-8 pt-6">
-        {/* Left Sidebar */}
-        <Sidebar title="EPRA" />
-        {/* Center Profile Management */}
-        <main className="flex-1 max-w-xl w-full">
+      <div className="flex flex-col items-center w-full pt-6">
+        <div className="w-full max-w-2xl mx-auto">
           {/* Header with Back Button and border */}
           <div className="w-full flex items-center px-4 py-3 border-b bg-white">
             <BackButton label="Profile" />
@@ -297,56 +293,7 @@ const Profile = () => {
               </button>
             </form>
           </div>
-        </main>
-        {/* Right Sidebar */}
-        <aside className="w-80 hidden xl:flex flex-col gap-4">
-          <div className="bg-white rounded-2xl shadow border border-gray-200 p-4 sticky top-6">
-            <div className="font-bold text-lg mb-2">What's happening</div>
-            <div className="flex flex-col gap-2">
-              <div>
-                <div className="text-xs text-gray-500">Business & finance · Trending</div>
-                <div className="font-semibold text-gray-900">Market Cap</div>
-                <div className="text-xs text-gray-500">27.8K posts</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Politics · Trending</div>
-                <div className="font-semibold text-gray-900">President Ruto</div>
-                <div className="text-xs text-gray-500">13.6K posts</div>
-              </div>
-              <div>
-                <div className="font-semibold text-gray-900">Khwisero's Finest</div>
-                <div className="text-xs text-gray-500">@Dredo_ltd</div>
-              </div>
-              <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl shadow border border-gray-200 p-4">
-            <div className="font-bold text-lg mb-2">Who to follow</div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Khwisero's Finest</div>
-                  <div className="text-xs text-gray-500">@Dredo_ltd</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Rocky</div>
-                  <div className="text-xs text-gray-500">@Rocky11960</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Mpakaunik</div>
-                  <div className="text-xs text-gray-500">@Mpakaunik</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-            </div>
-          </div>
-        </aside>
+        </div>
       </div>
     </div>
   );

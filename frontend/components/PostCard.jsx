@@ -436,14 +436,15 @@ const PostCard = ({
   );
 
   if (isSingleView) {
-    return <div className="block group">{cardContent}</div>;
+    return (
+      <div className="w-full max-w-2xl mx-auto block group">
+        {cardContent}
+      </div>
+    );
   }
   // In all posts view, make the card itself clickable except for the avatar
   return (
-    <div
-      className="block group"
-      style={{ cursor: "pointer" }}
-      tabIndex={0}
+    <div className="w-full max-w-2xl mx-auto block group" style={{ cursor: "pointer" }} tabIndex={0}
       onClick={e => {
         // Prevent navigation if the avatar was clicked
         if (

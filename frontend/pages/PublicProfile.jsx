@@ -65,15 +65,12 @@ const PublicProfile = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="max-w-7xl mx-auto flex flex-row justify-center gap-8 pt-6">
-        {/* Left Sidebar */}
-        <Sidebar title="EPRA" />
-        {/* Center Profile */}
-        <main className="flex-1 flex flex-col items-center">
-          <div className="w-full max-w-xl">
-            <div className="w-full flex items-center px-4 py-3 border-b bg-white sticky top-0 z-10">
-              <BackButton label="Profile" />
-            </div>
+      <div className="flex flex-col items-center w-full pt-6">
+        <div className="w-full">
+          <div className="w-full flex items-center px-4 py-3 border-b bg-white sticky top-0 z-10">
+            <BackButton label="Profile" />
+          </div>
+          <div className="w-full max-w-2xl mx-auto">
             <ProfileHeader
               avatar={avatar}
               fullName={user.full_name}
@@ -119,17 +116,19 @@ const PublicProfile = () => {
               ].filter(Boolean)}
               onEdit={() => navigate("/profile")}
               isOwnProfile={
-              (() => {
-                try {
-                  const stored = JSON.parse(localStorage.getItem("user"));
-                  return stored && stored.username === user.username;
-                } catch {
-                  return false;
-                }
-              })()
-            }
+                (() => {
+                  try {
+                    const stored = JSON.parse(localStorage.getItem("user"));
+                    return stored && stored.username === user.username;
+                  } catch {
+                    return false;
+                  }
+                })()
+              }
             />
-            {/* Tabs */}
+          </div>
+          {/* Tabs */}
+          <div className="w-full max-w-2xl mx-auto">
             <div className="border-b flex gap-8 px-6">
               {["Posts", "Replies", "Highlights", "Articles", "Media", "Likes"].map((tab) => (
                 <button
@@ -145,13 +144,78 @@ const PublicProfile = () => {
                 </button>
               ))}
             </div>
-            {/* Tab Content */}
-            <div className="px-6 py-4">
-              {activeTab === "Posts" && (
-                posts.length === 0 ? (
-                  <div className="text-gray-400 text-center py-8">No posts yet.</div>
-                ) : (
-                  posts.map((post) => (
+          </div>
+          {/* Tab Content */}
+          <div className="px-6 py-4">
+            {activeTab === "Posts" && (
+              posts.length === 0 ? (
+                <div className="text-gray-400 text-center py-8">No posts yet.</div>
+              ) : (
+                posts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    id={post.id}
+                    content={post.content}
+                    author={post.author}
+                    avatar={post.avatar}
+                    createdAt={post.createdAt}
+                    commentCount={post.commentCount}
+                    viewCount={post.viewCount}
+                    media={post.media}
+                    media_type={post.media_type}
+                    media_path={post.media_path}
+                    user={user}
+                  />
+                ))
+              )
+            )}
+            {activeTab === "Replies" && (
+              replies.length === 0 ? (
+                <div className="text-gray-400 text-center py-8">No replies yet.</div>
+              ) : (
+                replies.map((reply) => (
+                  <PostCard
+                    key={reply.id}
+                    id={reply.id}
+                    content={reply.content}
+                    author={reply.author}
+                    avatar={reply.avatar}
+                    createdAt={reply.createdAt}
+                    commentCount={reply.commentCount}
+                    viewCount={reply.viewCount}
+                    media={reply.media}
+                    media_type={reply.media_type}
+                    media_path={reply.media_path}
+                    user={user}
+                  />
+                ))
+              )
+            )}
+            {activeTab === "Highlights" && (
+              <div className="text-gray-400 text-center py-8">No highlights yet.</div>
+            )}
+            {activeTab === "Articles" && (
+              <div className="text-gray-400 text-center py-8">No articles yet.</div>
+            )}
+            {activeTab === "Media" && (
+              posts.filter(
+                (p) =>
+                  /<img|<video/i.test(p.content) ||
+                  p.media ||
+                  p.media_type ||
+                  p.media_path
+              ).length === 0 ? (
+                <div className="text-gray-400 text-center py-8">No media posts yet.</div>
+              ) : (
+                posts
+                  .filter(
+                    (p) =>
+                      /<img|<video/i.test(p.content) ||
+                      p.media ||
+                      p.media_type ||
+                      p.media_path
+                  )
+                  .map((post) => (
                     <PostCard
                       key={post.id}
                       id={post.id}
@@ -167,146 +231,32 @@ const PublicProfile = () => {
                       user={user}
                     />
                   ))
-                )
-              )}
-              {activeTab === "Replies" && (
-                replies.length === 0 ? (
-                  <div className="text-gray-400 text-center py-8">No replies yet.</div>
-                ) : (
-                  replies.map((reply) => (
-                    <PostCard
-                      key={reply.id}
-                      id={reply.id}
-                      content={reply.content}
-                      author={reply.author}
-                      avatar={reply.avatar}
-                      createdAt={reply.createdAt}
-                      commentCount={reply.commentCount}
-                      viewCount={reply.viewCount}
-                      media={reply.media}
-                      media_type={reply.media_type}
-                      media_path={reply.media_path}
-                      user={user}
-                    />
-                  ))
-                )
-              )}
-              {activeTab === "Highlights" && (
-                <div className="text-gray-400 text-center py-8">No highlights yet.</div>
-              )}
-              {activeTab === "Articles" && (
-                <div className="text-gray-400 text-center py-8">No articles yet.</div>
-              )}
-              {activeTab === "Media" && (
-                posts.filter(
-                  (p) =>
-                    /<img|<video/i.test(p.content) ||
-                    p.media ||
-                    p.media_type ||
-                    p.media_path
-                ).length === 0 ? (
-                  <div className="text-gray-400 text-center py-8">No media posts yet.</div>
-                ) : (
-                  posts
-                    .filter(
-                      (p) =>
-                        /<img|<video/i.test(p.content) ||
-                        p.media ||
-                        p.media_type ||
-                        p.media_path
-                    )
-                    .map((post) => (
-                      <PostCard
-                        key={post.id}
-                        id={post.id}
-                        content={post.content}
-                        author={post.author}
-                        avatar={post.avatar}
-                        createdAt={post.createdAt}
-                        commentCount={post.commentCount}
-                        viewCount={post.viewCount}
-                        media={post.media}
-                        media_type={post.media_type}
-                        media_path={post.media_path}
-                        user={user}
-                      />
-                    ))
-                )
-              )}
-              {activeTab === "Likes" && (
-                likes.length === 0 ? (
-                  <div className="text-gray-400 text-center py-8">No liked posts yet.</div>
-                ) : (
-                  likes.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      id={post.id}
-                      content={post.content}
-                      author={post.author}
-                      avatar={post.avatar}
-                      createdAt={post.createdAt}
-                      commentCount={post.commentCount}
-                      viewCount={post.viewCount}
-                      media={post.media}
-                      media_type={post.media_type}
-                      media_path={post.media_path}
-                      user={user}
-                    />
-                  ))
-                )
-              )}
-            </div>
+              )
+            )}
+            {activeTab === "Likes" && (
+              likes.length === 0 ? (
+                <div className="text-gray-400 text-center py-8">No liked posts yet.</div>
+              ) : (
+                likes.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    id={post.id}
+                    content={post.content}
+                    author={post.author}
+                    avatar={post.avatar}
+                    createdAt={post.createdAt}
+                    commentCount={post.commentCount}
+                    viewCount={post.viewCount}
+                    media={post.media}
+                    media_type={post.media_type}
+                    media_path={post.media_path}
+                    user={user}
+                  />
+                ))
+              )
+            )}
           </div>
-        </main>
-        {/* Right Sidebar */}
-        <aside className="w-80 hidden xl:flex flex-col gap-4">
-          <div className="bg-white rounded-2xl shadow border border-gray-200 p-4 sticky top-6">
-            <div className="font-bold text-lg mb-2">What's happening</div>
-            <div className="flex flex-col gap-2">
-              <div>
-                <div className="text-xs text-gray-500">Business & finance · Trending</div>
-                <div className="font-semibold text-gray-900">Market Cap</div>
-                <div className="text-xs text-gray-500">27.8K posts</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Politics · Trending</div>
-                <div className="font-semibold text-gray-900">President Ruto</div>
-                <div className="text-xs text-gray-500">13.6K posts</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Trending in Kenya</div>
-                <div className="font-semibold text-gray-900">Tundu Lissu</div>
-                <div className="text-xs text-gray-500">22K posts</div>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl shadow border border-gray-200 p-4">
-            <div className="font-bold text-lg mb-2">Who to follow</div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Khwisero's Finest</div>
-                  <div className="text-xs text-gray-500">@Dredo_ltd</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Rocky</div>
-                  <div className="text-xs text-gray-500">@Rocky11960</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Mpakaunik</div>
-                  <div className="text-xs text-gray-500">@Mpakaunik</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-            </div>
-          </div>
-        </aside>
+        </div>
       </div>
     </div>
   );

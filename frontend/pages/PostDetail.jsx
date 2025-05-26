@@ -141,9 +141,8 @@ const PostDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="max-w-7xl mx-auto flex flex-row justify-center gap-8 pt-6">
-        <Sidebar title="EPRA" />
-        <main className="flex-1 max-w-xl w-full">
+      <div className="flex-1 flex justify-center w-full pt-6">
+        <div className="w-full">
           <div className="w-full flex items-center px-4 py-3 border-b sticky top-0 bg-white z-10">
             <BackButton label="Post" />
           </div>
@@ -206,126 +205,80 @@ const PostDetail = () => {
               )}
             </div>
           </div>
-          <CommentThread
-            comments={comments.map((c, idx) => {
-              // Robustly extract media meta for every comment
-              let mediaObj = c.media;
-              let mediaType = c.media_type || null;
-              let mediaPath = c.media_path || null;
+          <div className="w-full max-w-2xl mx-auto">
+            <CommentThread
+              comments={comments.map((c, idx) => {
+                // Robustly extract media meta for every comment
+                let mediaObj = c.media;
+                let mediaType = c.media_type || null;
+                let mediaPath = c.media_path || null;
 
-              // If media is an array, use the first item
-              if (Array.isArray(mediaObj) && mediaObj.length > 0) {
-                mediaObj = mediaObj[0];
-              }
-              if (!mediaType && mediaObj) {
-                mediaType =
-                  mediaObj.media_type ||
-                  mediaObj.mediaType ||
-                  mediaObj.type ||
-                  null;
-              }
-              if (!mediaPath && mediaObj) {
-                mediaPath =
-                  mediaObj.media_path ||
-                  mediaObj.mediaPath ||
-                  mediaObj.path ||
-                  mediaObj.url ||
-                  null;
-              }
+                // If media is an array, use the first item
+                if (Array.isArray(mediaObj) && mediaObj.length > 0) {
+                  mediaObj = mediaObj[0];
+                }
+                if (!mediaType && mediaObj) {
+                  mediaType =
+                    mediaObj.media_type ||
+                    mediaObj.mediaType ||
+                    mediaObj.type ||
+                    null;
+                }
+                if (!mediaPath && mediaObj) {
+                  mediaPath =
+                    mediaObj.media_path ||
+                    mediaObj.mediaPath ||
+                    mediaObj.path ||
+                    mediaObj.url ||
+                    null;
+                }
 
-              // If this is the root comment and matches the post, merge post media fields
-              const isRoot = !c.parent_id || c.parent_id === null || c.parent_id === undefined;
-              const isPostComment = isRoot && (c.id === post.id || idx === 0);
+                // If this is the root comment and matches the post, merge post media fields
+                const isRoot = !c.parent_id || c.parent_id === null || c.parent_id === undefined;
+                const isPostComment = isRoot && (c.id === post.id || idx === 0);
 
-              return {
-                ...c,
-                author: c.author || c.username || c.email || "User",
-                username: c.username || (c.author ? c.author.replace(/\s+/g, "").toLowerCase() : ""),
+                return {
+                  ...c,
+                  author: c.author || c.username || c.email || "User",
+                  username: c.username || (c.author ? c.author.replace(/\s+/g, "").toLowerCase() : ""),
+                  avatar:
+                    c.avatar && c.avatar.length > 0
+                      ? c.avatar
+                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          c.author || c.username || "User"
+                        )}&background=0D8ABC&color=fff`,
+                  media: isPostComment
+                    ? c.media || post.media
+                    : c.media,
+                  media_type: isPostComment
+                    ? c.media_type || post.media_type || mediaType
+                    : c.media_type || mediaType,
+                  media_path: isPostComment
+                    ? c.media_path || post.media_path || mediaPath
+                    : c.media_path || mediaPath
+                };
+              })}
+              postId={post.id}
+              onReply={handleCommentReply}
+              loading={loading}
+              user={{
+                name: user?.full_name || user?.username || user?.email || "User",
+                username: user?.username || "",
                 avatar:
-                  c.avatar && c.avatar.length > 0
-                    ? c.avatar
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        c.author || c.username || "User"
-                      )}&background=0D8ABC&color=fff`,
-                media: isPostComment
-                  ? c.media || post.media
-                  : c.media,
-                media_type: isPostComment
-                  ? c.media_type || post.media_type || mediaType
-                  : c.media_type || mediaType,
-                media_path: isPostComment
-                  ? c.media_path || post.media_path || mediaPath
-                  : c.media_path || mediaPath
-              };
-            })}
-            postId={post.id}
-            onReply={handleCommentReply}
-            loading={loading}
-            user={{
-              name: user?.full_name || user?.username || user?.email || "User",
-              username: user?.username || "",
-              avatar:
-                user?.avatar && user?.avatar.length > 0
-                  ? user.avatar
-                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || "User")}&background=0D8ABC&color=fff`
-            }}
-            fetchComments={() => {
-              fetch(`/api/posts/${id}/comments`)
-                .then(res => res.json())
-                .then(data => {
-                  if (Array.isArray(data)) setComments(data);
-                });
-            }}
-          />
-        </main>
-        <aside className="w-80 hidden xl:flex flex-col gap-4">
-          <div className="bg-white rounded-2xl shadow border border-gray-200 p-4 sticky top-6">
-            <div className="font-bold text-lg mb-2">What's happening</div>
-            <div className="flex flex-col gap-2">
-              <div>
-                <div className="text-xs text-gray-500">Business & finance · Trending</div>
-                <div className="font-semibold text-gray-900">Market Cap</div>
-                <div className="text-xs text-gray-500">27.8K posts</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Politics · Trending</div>
-                <div className="font-semibold text-gray-900">President Ruto</div>
-                <div className="text-xs text-gray-500">13.6K posts</div>
-              </div>
-              <div>
-                <div className="font-semibold text-gray-900">Khwisero's Finest</div>
-                <div className="text-xs text-gray-500">@Dredo_ltd</div>
-              </div>
-              <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-            </div>
+                  user?.avatar && user?.avatar.length > 0
+                    ? user.avatar
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || "User")}&background=0D8ABC&color=fff`
+              }}
+              fetchComments={() => {
+                fetch(`/api/posts/${id}/comments`)
+                  .then(res => res.json())
+                  .then(data => {
+                    if (Array.isArray(data)) setComments(data);
+                  });
+              }}
+            />
           </div>
-          <div className="bg-white rounded-2xl shadow border border-gray-200 p-4">
-            <div className="font-bold text-lg mb-2">Who to follow</div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Khwisero's Finest</div>
-                  <div className="text-xs text-gray-500">@Dredo_ltd</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Rocky</div>
-                  <div className="text-xs text-gray-500">@Rocky11960</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">Mpakaunik</div>
-                  <div className="text-xs text-gray-500">@Mpakaunik</div>
-                </div>
-                <button className="bg-black text-white rounded-full px-4 py-1 text-sm font-semibold hover:bg-gray-900">Follow</button>
-              </div>
-            </div>
-          </div>
-        </aside>
+        </div>
       </div>
     </div>
   );

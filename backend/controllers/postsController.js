@@ -107,6 +107,7 @@ exports.addCommentToPost = async (req, res) => {
     const audioRegex = /<audio[^>]*src="([^"]+)"[^>]*>/i;
     const videoRegex = /<video[^>]*src="([^"]+)"[^>]*>/i;
     const pdfRegex = /<embed[^>]*type="application\/pdf"[^>]*src="([^"]+)"[^>]*>/i;
+    const imgRegex = /<img[^>]*src="([^"]+)"[^>]*>/i;
 
     if (audioRegex.test(text)) {
       const match = text.match(audioRegex);
@@ -121,6 +122,11 @@ exports.addCommentToPost = async (req, res) => {
     } else if (pdfRegex.test(text)) {
       const match = text.match(pdfRegex);
       type = "pdf";
+      path = match[1];
+      text = "";
+    } else if (imgRegex.test(text)) {
+      const match = text.match(imgRegex);
+      type = "image";
       path = match[1];
       text = "";
     } else if (type && path) {
@@ -146,6 +152,7 @@ exports.addCommentToPost = async (req, res) => {
       if (media) {
         finalMediaType = media.type && media.type.startsWith("audio") ? "audio"
           : media.type && media.type.startsWith("video") ? "video"
+          : media.type && media.type.startsWith("image") ? "image"
           : media.type === "application/pdf" ? "pdf"
           : null;
         finalMediaPath = media.url;
@@ -329,6 +336,7 @@ exports.createPost = async (req, res) => {
     const audioRegex = /<audio[^>]*src="([^"]+)"[^>]*>/i;
     const videoRegex = /<video[^>]*src="([^"]+)"[^>]*>/i;
     const pdfRegex = /<embed[^>]*type="application\/pdf"[^>]*src="([^"]+)"[^>]*>/i;
+    const imgRegex = /<img[^>]*src="([^"]+)"[^>]*>/i;
 
     if (audioRegex.test(text)) {
       const match = text.match(audioRegex);
@@ -343,6 +351,11 @@ exports.createPost = async (req, res) => {
     } else if (pdfRegex.test(text)) {
       const match = text.match(pdfRegex);
       type = "pdf";
+      path = match[1];
+      text = "";
+    } else if (imgRegex.test(text)) {
+      const match = text.match(imgRegex);
+      type = "image";
       path = match[1];
       text = "";
     } else if (type && path) {
@@ -373,6 +386,7 @@ exports.createPost = async (req, res) => {
       if (media) {
         finalMediaType = media.type && media.type.startsWith("audio") ? "audio"
           : media.type && media.type.startsWith("video") ? "video"
+          : media.type && media.type.startsWith("image") ? "image"
           : media.type === "application/pdf" ? "pdf"
           : null;
         finalMediaPath = media.url;

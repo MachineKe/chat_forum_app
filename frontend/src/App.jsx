@@ -1,11 +1,21 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Register from "../pages/Register";
 import Login from "../pages/Login";
 import Forum from "../pages/Forum";
 import PostDetail from "../pages/PostDetail";
 import Profile from "../pages/Profile";
 import PublicProfile from "../pages/PublicProfile";
+import Sidebar from "../components/Sidebar";
+
+// Layout with persistent Sidebar
+function SidebarLayout() {
+  return (
+    <Sidebar>
+      <Outlet />
+    </Sidebar>
+  );
+}
 
 function App() {
   return (
@@ -13,10 +23,13 @@ function App() {
       <Routes>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Forum />} />
-        <Route path="/post/:id" element={<PostDetail />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/user/:username" element={<PublicProfile />} />
+        {/* All main pages use the Sidebar layout */}
+        <Route element={<SidebarLayout />}>
+          <Route path="/" element={<Forum />} />
+          <Route path="/post/:id" element={<PostDetail />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/user/:username" element={<PublicProfile />} />
+        </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
