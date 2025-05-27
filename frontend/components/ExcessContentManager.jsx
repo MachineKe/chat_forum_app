@@ -39,7 +39,10 @@ const ExcessContentManager = ({
               {content}
               <button
                 className="ml-2 text-blue-600 hover:underline bg-transparent border-none cursor-pointer text-sm"
-                onClick={() => setExpanded(false)}
+                onClick={e => {
+                  e.stopPropagation();
+                  setExpanded(false);
+                }}
                 type="button"
               >
                 {showLessLabel}
@@ -51,7 +54,10 @@ const ExcessContentManager = ({
               {"... "}
               <button
                 className="ml-2 text-blue-600 hover:underline bg-transparent border-none cursor-pointer text-sm"
-                onClick={() => setExpanded(true)}
+                onClick={e => {
+                  e.stopPropagation();
+                  setExpanded(true);
+                }}
                 type="button"
               >
                 {showMoreLabel}
