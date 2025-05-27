@@ -23,6 +23,7 @@ function getRelativeTime(dateString) {
 
 import MediaPlayer from "./MediaPlayer";
 import useUser from "../hooks/useUser";
+import ExcessContentManager from "./ExcessContentManager";
 
 const PostCard = ({
   id,
@@ -316,7 +317,7 @@ const PostCard = ({
       {/* Post content first, then media */}
       <div className="px-4 pb-2">
         <div className="text-gray-900 text-base mb-2" style={{ minHeight: 32 }}>
-          {content}
+          <ExcessContentManager content={content} wordLimit={30} />
         </div>
       </div>
       {/* Media (if present) */}

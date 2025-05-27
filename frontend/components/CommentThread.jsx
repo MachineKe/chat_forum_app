@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import TiptapEditor, { renderMediaPreviewOnly } from "./TiptapEditor";
 import PlainText from "./PlainText";
+import ExcessContentManager from "./ExcessContentManager";
 import Avatar from "./Avatar";
 import MediaPlayer from "./MediaPlayer";
 import LikeButton from "./LikeButton";
@@ -26,12 +27,6 @@ const CommentThread = ({
   fetchComments,
   user,
 }) => {
-  // Log comments to check if username and media are present
-  try {
-    console.log("CommentThread received comments:", JSON.stringify(comments, null, 2));
-  } catch (e) {
-    console.log("CommentThread received comments (raw):", comments);
-  }
   const [replyingToCommentId, setReplyingToCommentId] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState({});
 
@@ -184,7 +179,7 @@ const CommentThread = ({
             return null;
           })()}
           <div className="text-gray-900 text-base mb-2">
-            {renderTextBeforeMedia(comment.content)}
+            <ExcessContentManager content={comment.content} wordLimit={20} />
           </div>
           <div className="flex items-center gap-4 text-gray-500 text-xs mt-1">
             <span>57m</span>
@@ -281,6 +276,8 @@ const CommentThread = ({
                       setReplyContent("");
                       setReplyMediaId(null);
                       setReplyMedia(null);
+                      // Expand replies for this comment after submitting
+                      setExpandedReplies(prev => ({ ...prev, [comment.id]: true }));
                       setReplyingToCommentId(null);
                       setIsReplyEditorActive(false);
                       if (fetchComments) fetchComments();

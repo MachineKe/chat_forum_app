@@ -143,7 +143,6 @@ exports.addCommentToPost = async (req, res) => {
     }
     // Remove any "+ audio", "+ video", "+ pdf" markers from text
     plainText = plainText.replace(/^\s*\+\s*(audio|video|pdf)\s*$/i, "").trim();
-    console.log("parseContentAndMedia: received content:", originalHtml, "extracted text:", plainText, "type:", type, "path:", path);
     return { text: plainText, type, path };
   }
 
@@ -378,7 +377,6 @@ exports.createPost = async (req, res) => {
     }
     // Remove any "+ audio", "+ video", "+ pdf" markers from text
     plainText = plainText.replace(/^\s*\+\s*(audio|video|pdf)\s*$/i, "").trim();
-    console.log("parseContentAndMedia (post): received content:", originalHtml, "extracted text:", plainText, "type:", type, "path:", path);
     return { text: plainText, type, path };
   }
 

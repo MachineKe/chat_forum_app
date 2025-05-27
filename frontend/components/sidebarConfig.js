@@ -7,10 +7,10 @@ export const leftSidebarRoutes = [
   { icon: "🏠", label: "Home", to: "/" },
   { icon: "🔍", label: "Explore", to: "#" },
   { icon: "🔔", label: "Notifications", to: "#" },
-  { icon: "✉️", label: "Messages", to: "/chat" },
-  { icon: "🔖", label: "Bookmarks", to: "#" },
-  { icon: "💼", label: "Jobs", to: "#" },
-  { icon: "👥", label: "Communities", to: "#" },
+  // { icon: "✉️", label: "Messages", to: "/chat" },
+  // { icon: "🔖", label: "Bookmarks", to: "#" },
+  // { icon: "💼", label: "Jobs", to: "#" },
+  // { icon: "👥", label: "Communities", to: "#" },
   { icon: "☰", label: "More", to: "#" },
 ];
 
