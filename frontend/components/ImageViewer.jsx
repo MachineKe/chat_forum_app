@@ -1,4 +1,5 @@
 import React from "react";
+import ImageProcessor from "./ImageProcessor";
 
 const overlayStyle = {
   position: "fixed",
@@ -47,7 +48,7 @@ function ImageViewer({ src, alt = "", open, onClose }) {
         &times;
       </button>
       <div style={modalStyle} onClick={e => e.stopPropagation()}>
-        <img
+        <ImageProcessor
           src={src}
           alt={alt}
           style={{

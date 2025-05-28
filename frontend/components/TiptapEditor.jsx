@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Avatar from "./Avatar";
 import Card from "./Card";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -7,6 +7,8 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
 import { Node, mergeAttributes } from "@tiptap/core";
+import Modal from "./Modal";
+import Camera from "./Camera";
 
 // Custom Video extension for Tiptap
 const Video = Node.create({
@@ -29,7 +31,6 @@ const Video = Node.create({
     return ["video", mergeAttributes(HTMLAttributes)];
   },
 });
-
 
 // Custom Audio extension for Tiptap
 const Audio = Node.create({
@@ -131,6 +132,10 @@ const TiptapEditor = ({
 }) => {
   const [tab, setTab] = useState("write");
   const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const fileInputRef = useRef(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -145,14 +150,13 @@ const TiptapEditor = ({
     editable,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      console.log("Editor HTML on update:", html);
       onChange(html);
     },
   });
 
   // Prevent resetting content on every keystroke (which causes media to disappear)
   // Only update editor content if value prop changes from outside (e.g., after post submit)
-  const lastValueRef = React.useRef(value);
+  const lastValueRef = useRef(value);
   useEffect(() => {
     if (
       editor &&
@@ -165,6 +169,137 @@ const TiptapEditor = ({
     }
     // eslint-disable-next-line
   }, [value, editor]);
+
+  // Handle file input (image/video)
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (file.type.startsWith("image/")) {
+        // Upload image to backend
+        const formData = new FormData();
+        formData.append("media", file);
+        fetch("/api/posts/upload-media", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.url) {
+              editor.commands.focus('end');
+              editor.chain().insertContent(`<img src="${data.url}" />`).focus('end').run();
+              setSelectedMedia({ src: data.url, type: "image" });
+              if (data.id && typeof onMediaUpload === "function") {
+                onMediaUpload(data.id, "image");
+              }
+            } else {
+              alert("Image upload failed.");
+            }
+          })
+          .catch(() => {
+            alert("Image upload failed.");
+          });
+      } else if (file.type.startsWith("video/")) {
+        // Upload video to backend
+        const formData = new FormData();
+        formData.append("media", file);
+        fetch("/api/posts/upload-media", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.url) {
+              editor.commands.focus('end');
+              editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
+              setSelectedMedia({ src: data.url, type: "video" });
+              if (data.id && typeof onMediaUpload === "function") {
+                onMediaUpload(data.id, "video");
+              }
+            } else {
+              alert("Video upload failed.");
+            }
+          })
+          .catch(() => {
+            alert("Video upload failed.");
+          });
+      }
+      setMediaModalOpen(false);
+      setShowCamera(false);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
+  // Handle camera capture (image)
+  const handleCameraCapture = (dataUrl) => {
+    // Upload captured image to backend
+    fetch(dataUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], "captured-image.png", { type: "image/png" });
+        const formData = new FormData();
+        formData.append("media", file);
+        fetch("/api/posts/upload-media", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.url) {
+              editor.commands.focus('end');
+              editor.chain().insertContent(`<img src="${data.url}" />`).focus('end').run();
+              setSelectedMedia({ src: data.url, type: "image" });
+              if (data.id && typeof onMediaUpload === "function") {
+                onMediaUpload(data.id, "image");
+              }
+            } else {
+              alert("Image upload failed.");
+            }
+          })
+          .catch(() => {
+            alert("Image upload failed.");
+          });
+      });
+    setMediaModalOpen(false);
+    setShowCamera(false);
+  };
+
+  // Handle camera record (video)
+  const handleCameraRecord = (videoUrl) => {
+    // Upload captured video to backend
+    fetch(videoUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], "captured-video.webm", { type: "video/webm" });
+        const formData = new FormData();
+        formData.append("media", file);
+        fetch("/api/posts/upload-media", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.url) {
+              editor.commands.focus('end');
+              editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
+              setSelectedMedia({ src: data.url, type: "video" });
+              if (data.id && typeof onMediaUpload === "function") {
+                onMediaUpload(data.id, "video");
+              }
+            } else {
+              alert("Video upload failed.");
+            }
+          })
+          .catch(() => {
+            alert("Video upload failed.");
+          });
+      });
+    setMediaModalOpen(false);
+    setShowCamera(false);
+  };
 
   if (!editor) return null;
 
@@ -283,69 +418,7 @@ const TiptapEditor = ({
             <button
               className="w-8 h-8 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200"
               title="Photo/Video"
-              onClick={() => {
-                // Create a hidden file input for image/video
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = "image/*,video/*";
-                input.onchange = (e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                if (file.type.startsWith("image/")) {
-                  // Upload image to backend
-                  const formData = new FormData();
-                  formData.append("media", file);
-                  fetch("/api/posts/upload-media", {
-                    method: "POST",
-                    body: formData,
-                  })
-                    .then((res) => res.json())
-                    .then((data) => {
-                      if (data.url) {
-                        // Move cursor to end, insert image, then move cursor after
-                        editor.commands.focus('end');
-                        editor.chain().insertContent(`<img src="${data.url}" />`).focus('end').run();
-                        setSelectedMedia({ src: data.url, type: "image" });
-                        if (data.id && typeof onMediaUpload === "function") {
-                          onMediaUpload(data.id, "image");
-                        }
-                      } else {
-                        alert("Image upload failed.");
-                      }
-                    })
-                    .catch(() => {
-                      alert("Image upload failed.");
-                    });
-                } else if (file.type.startsWith("video/")) {
-                  // Upload video to backend
-                  const formData = new FormData();
-                  formData.append("media", file);
-                  fetch("/api/posts/upload-media", {
-                    method: "POST",
-                    body: formData,
-                  })
-                    .then((res) => res.json())
-                    .then((data) => {
-                      if (data.url) {
-                        // Move cursor to end, insert video, then move cursor after
-                        editor.commands.focus('end');
-                        editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
-                        setSelectedMedia({ src: data.url, type: "video" });
-                        if (data.id && typeof onMediaUpload === "function") {
-                          onMediaUpload(data.id, "video");
-                        }
-                      } else {
-                        alert("Video upload failed.");
-                      }
-                    })
-                    .catch(() => {
-                      alert("Video upload failed.");
-                    });
-                }
-                  }
-                };
-                input.click();
-              }}
+              onClick={() => setMediaModalOpen(true)}
             >
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#34D399"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/><path d="M21 15l-5-5L5 21" stroke="#fff" strokeWidth="2"/></svg>
             </button>
@@ -452,6 +525,48 @@ const TiptapEditor = ({
           </div>
         </div>
       </div>
+      {/* Media Modal */}
+      <Modal open={mediaModalOpen} onClose={() => { setMediaModalOpen(false); setShowCamera(false); }}>
+        {!showCamera ? (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Insert Photo/Video</h3>
+            <div className="flex flex-col gap-4">
+              <button
+                className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => setShowCamera(true)}
+              >
+                Use Camera
+              </button>
+              <button
+                className="w-full py-2 px-4 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              >
+                Select from Device
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Camera
+              onCapture={handleCameraCapture}
+              onRecord={handleCameraRecord}
+            />
+            <button
+              className="mt-4 w-full py-2 px-4 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+              onClick={() => setShowCamera(false)}
+            >
+              Back
+            </button>
+          </div>
+        )}
+      </Modal>
       {/* Post button */}
       <div className="px-4 pb-4">
         <button
@@ -463,7 +578,6 @@ const TiptapEditor = ({
           disabled={!(editor.getText().trim() || hasMedia(editor.getHTML()))}
           onClick={() => {
             if ((editor.getText().trim() || hasMedia(editor.getHTML())) && typeof onNext === "function") {
-              console.log("Next button clicked, calling onNext");
               onNext(selectedMedia);
               // Do NOT clear the editor here; let the parent clear after successful post
             }

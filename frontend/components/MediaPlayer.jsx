@@ -6,6 +6,7 @@ import ImageViewer from "./ImageViewer";
 import DocumentViewer from "./DocumentViewer";
 import DocumentCarousel from "./DocumentCarousel";
 import { useAutoPlayMedia } from "../hooks/useAutoPlayMedia";
+import ImageProcessor from "./ImageProcessor";
 
 let mediaPlayerIdCounter = 0;
 function getUniqueMediaPlayerId() {
@@ -93,7 +94,7 @@ const MediaPlayer = ({
   if (mediaType === "image") {
     return (
       <>
-        <img
+        <ImageProcessor
           src={src}
           alt={alt}
           className={className}
