@@ -21,7 +21,33 @@ const VideoViewer = ({ src, open, onClose, poster }) => {
         >
           ×
         </button>
-        <VideoPlayer src={src} poster={poster} controls autoPlay style={{ maxHeight: "80vh", maxWidth: "80vw" }} />
+        <div
+          style={{
+            width: "80vw",
+            maxWidth: "90vw",
+            aspectRatio: "16/9",
+            background: "#000",
+            borderRadius: 12,
+            boxShadow: "0 4px 32px rgba(0,0,0,0.4)",
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}
+        >
+          <VideoPlayer
+            src={src}
+            poster={poster}
+            controls
+            autoPlay
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              background: "#000"
+            }}
+          />
+        </div>
       </div>
     </div>
   );
