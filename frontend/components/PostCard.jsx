@@ -369,12 +369,12 @@ const PostCard = ({
                 type={mediaType}
                 style={{
                   maxWidth: "100%",
-                  minHeight: mediaType === "audio" ? 180 : undefined,
-                  height: mediaType === "audio" ? 180 : undefined,
+                  minHeight: mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined,
+                  height: mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined,
                   borderRadius: 8,
                   margin: mediaType === "audio" ? "0 0 8px 0" : "8px 0"
                 }}
-                height={mediaType === "audio" ? 180 : undefined}
+                height={mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined}
                 barCount={mediaType === "audio" ? 64 : undefined}
               />
             </div>

@@ -116,7 +116,7 @@ const AudioPlayer = forwardRef(
 
     if (!src) return null;
     return (
-      <div className={className} style={{ ...style, height, background: "transparent" }}>
+      <div className={className} style={{ ...style, background: "transparent" }}>
         <div style={{ width: "100%", cursor: duration ? "pointer" : "default" }}>
           <canvas
             ref={canvasRef}
@@ -139,7 +139,7 @@ const AudioPlayer = forwardRef(
           autoPlay={autoPlay}
           loop={loop}
           muted={muted}
-          style={{ width: "100%", marginTop: 40 }}
+          style={{ width: "100%", marginTop: height <= 120 ? 8 : 40 }}
         >
           Your browser does not support the audio element.
         </audio>
