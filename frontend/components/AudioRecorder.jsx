@@ -157,17 +157,19 @@ const AudioRecorder = ({
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-gray-50 rounded-xl shadow">
         <div className="relative mb-6 w-full" style={{ minHeight: 48 }}>
-          <BackButton
-            label="New Recording"
-            onClick={() => {
-              setShowResult(false);
-              setAudioURL(null);
-              setAudioBlob(null);
-              setTimer(0);
-              setWaveformData([]);
-            }}
-            className="absolute left-0 top-1/2 -translate-y-1/2"
-          />
+          {showResult && (
+            <BackButton
+              label="New Recording"
+              onClick={() => {
+                setShowResult(false);
+                setAudioURL(null);
+                setAudioBlob(null);
+                setTimer(0);
+                setWaveformData([]);
+              }}
+              className="absolute left-0 top-1/2 -translate-y-1/2"
+            />
+          )}
           <h2 className="text-3xl font-semibold absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 m-0 p-0">
             Audio Recorder
           </h2>
