@@ -6,6 +6,7 @@ import Forum from "../pages/Forum";
 import PostDetail from "../pages/PostDetail";
 import Profile from "../pages/Profile";
 import PublicProfile from "../pages/PublicProfile";
+import AudioRecorderDemo from "../pages/AudioRecorderDemo";
 import Sidebar from "../components/Sidebar";
 
 // Layout with persistent Sidebar
@@ -29,6 +30,7 @@ function App() {
           <Route path="/post/:id" element={<PostDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/user/:username" element={<PublicProfile />} />
+          <Route path="/recorder" element={<AudioRecorderDemo />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

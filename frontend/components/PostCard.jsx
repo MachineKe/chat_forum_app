@@ -350,11 +350,32 @@ const PostCard = ({
         if (mediaPath && mediaType) {
           const isDocument = (mediaType === "document" || mediaType === "pdf" || (typeof mediaPath === "string" && mediaPath.toLowerCase().endsWith(".pdf")));
           return (
-            <div className={isDocument ? "pt-2" : "px-4 pt-2"}>
+            <div
+              className={
+                isDocument
+                  ? "pt-2"
+                  : mediaType === "audio"
+                  ? "px-4" // remove pt-2 for audio, so it sits flush above
+                  : "px-4 pt-2"
+              }
+              style={
+                mediaType === "audio"
+                  ? { paddingTop: 0, marginTop: 0 }
+                  : undefined
+              }
+            >
               <MediaPlayer
                 src={mediaPath}
                 type={mediaType}
-                style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+                style={{
+                  maxWidth: "100%",
+                  minHeight: mediaType === "audio" ? 180 : undefined,
+                  height: mediaType === "audio" ? 180 : undefined,
+                  borderRadius: 8,
+                  margin: mediaType === "audio" ? "0 0 8px 0" : "8px 0"
+                }}
+                height={mediaType === "audio" ? 180 : undefined}
+                barCount={mediaType === "audio" ? 64 : undefined}
               />
             </div>
           );
@@ -656,7 +677,14 @@ function renderTextBeforeMedia(content) {
               key={key}
               src={src}
               type="audio"
-              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
+              style={{
+                maxWidth: "100%",
+                minHeight: 120,
+                borderRadius: 8,
+                margin: "8px 0"
+              }}
+              height={120}
+              barCount={64}
             />
           );
         }
