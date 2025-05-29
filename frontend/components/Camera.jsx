@@ -196,7 +196,7 @@ const Camera = ({
   };
 
   return (
-    <Modal open={true} onClose={onClose} showClose>
+    <Modal open={true} onClose={onClose} showClose={false}>
       {(!previewedImage && !previewedVideo) && (
         <div
           className="relative flex flex-col items-center justify-center bg-black bg-opacity-80 rounded-2xl shadow-2xl p-0"
@@ -209,7 +209,7 @@ const Camera = ({
           }}
         >
           {/* Top Bar */}
-          <div className="absolute top-0 left-0 w-full flex items-center justify-between px-4 py-2 z-10">
+          <div className="absolute top-0 left-0 w-full flex items-center justify-between px-4 py-2 pr-12 z-10">
             <div className="flex items-center gap-2">
               {/* Gallery Icon */}
               <button className="text-white opacity-70 hover:opacity-100 p-1 rounded-full bg-black bg-opacity-30">

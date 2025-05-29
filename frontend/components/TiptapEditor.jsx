@@ -526,7 +526,7 @@ const TiptapEditor = ({
         </div>
       </div>
       {/* Media Modal */}
-      <Modal open={mediaModalOpen} onClose={() => { setMediaModalOpen(false); setShowCamera(false); }}>
+      <Modal open={mediaModalOpen} onClose={() => { setMediaModalOpen(false); setShowCamera(false); }} showClose={false}>
         {!showCamera ? (
           <div>
             <h3 className="text-lg font-semibold mb-4">Insert Photo/Video</h3>
@@ -557,6 +557,7 @@ const TiptapEditor = ({
             <Camera
               onCapture={handleCameraCapture}
               onRecord={handleCameraRecord}
+              onClose={() => setShowCamera(false)}
             />
             <button
               className="mt-4 w-full py-2 px-4 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
