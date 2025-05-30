@@ -9,6 +9,7 @@ import Youtube from "@tiptap/extension-youtube";
 import { Node, mergeAttributes } from "@tiptap/core";
 import Modal from "./Modal";
 import Camera from "./Camera";
+import AudioRecorder from "./AudioRecorder";
 
 // Custom Video extension for Tiptap
 const Video = Node.create({
@@ -22,6 +23,7 @@ const Video = Node.create({
       src: { default: null },
       controls: { default: true },
       style: { default: "max-width:100%" },
+      title: { default: null },
     };
   },
   parseHTML() {
@@ -44,13 +46,17 @@ const Audio = Node.create({
       src: { default: null },
       controls: { default: true },
       style: { default: "max-width:100%" },
+      title: { default: null },
     };
   },
   parseHTML() {
     return [{ tag: "audio" }];
   },
   renderHTML({ HTMLAttributes }) {
-    return ["audio", mergeAttributes(HTMLAttributes)];
+    // Explicitly include title attribute if present
+    const attrs = { ...HTMLAttributes };
+    if (attrs.title === undefined) delete attrs.title;
+    return ["audio", mergeAttributes(attrs)];
   },
   addNodeView() {
     return ({ node, HTMLAttributes }) => {
@@ -130,11 +136,20 @@ const TiptapEditor = ({
   onMediaUpload, // NEW PROP
   mediaPreview, // NEW PROP: React node to render as media preview
 }) => {
-  const [tab, setTab] = useState("write");
-  const [selectedMedia, setSelectedMedia] = useState(null);
-  const [mediaModalOpen, setMediaModalOpen] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
-  const fileInputRef = useRef(null);
+  // Local state for media title input
+  const [mediaTitleInput, setMediaTitleInput] = useState("");
+  // Initialize editor FIRST before any hook or logic that uses it
+  // Debounce utility
+  function debounce(fn, delay) {
+    let timer = null;
+    return function (...args) {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  }
+
+  // Debounced onChange for editor updates
+  const debouncedOnChange = useRef(debounce(onChange, 300)).current;
 
   const editor = useEditor({
     extensions: [
@@ -150,9 +165,190 @@ const TiptapEditor = ({
     editable,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      onChange(html);
+      debouncedOnChange(html);
     },
   });
+
+  const [tab, setTab] = useState("write");
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Media node selection and title editing
+  const [selectedMediaNode, setSelectedMediaNode] = useState(null);
+  const [selectedMediaTitle, setSelectedMediaTitle] = useState("");
+
+  // Listen for selection changes in the editor
+  useEffect(() => {
+    if (!editor) return;
+
+    const handler = () => {
+      const { state } = editor;
+      const { selection } = state;
+      let node = null;
+      let title = "";
+      if (selection.node && ["audio", "video", "image", "pdfembed"].includes(selection.node.type.name)) {
+        node = selection.node;
+        title = node.attrs.title || "";
+      } else if (selection.$from && selection.$from.parent && ["audio", "video", "image", "pdfembed"].includes(selection.$from.parent.type.name)) {
+        // For image/pdfembed, which may be inline or block
+        node = selection.$from.parent;
+        title = node.attrs.title || "";
+      } else {
+        node = null;
+        title = "";
+      }
+      setSelectedMediaNode(node);
+      setSelectedMediaTitle(title);
+    };
+
+    editor.on("selectionUpdate", handler);
+    return () => {
+      editor.off("selectionUpdate", handler);
+    };
+  }, [editor]);
+
+  // NEW: Attachment modal and audio recorder state
+  const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
+  const [audioRecorderModalOpen, setAudioRecorderModalOpen] = useState(false);
+  const attachmentFileInputRef = useRef(null);
+  const [mediaTitle, setMediaTitle] = useState("");
+
+  // Handler for file selection in attachment modal
+  const handleAttachmentFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("media", file);
+    if (mediaTitle) formData.append("title", mediaTitle);
+    if (mediaTitle && mediaTitle.trim()) {
+      formData.append("title", mediaTitle.trim());
+    }
+    fetch("/api/posts/upload-media", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.url) {
+          // Use user-provided title if available, else backend, else empty
+          const fileTitle = mediaTitle && mediaTitle.trim() ? mediaTitle.trim() : (data.title || "");
+          let titleAttr = fileTitle ? ' title="' + fileTitle.replace(/"/g, "") + '"' : "";
+          // Treat .webm as audio for attachments
+          if (file.name && file.name.toLowerCase().endsWith(".webm")) {
+            editor.commands.focus('end');
+            editor.chain().insertContent('<audio controls src="' + data.url + '" style="max-width:100%"' + titleAttr + '></audio>').focus('end').run();
+            setSelectedMedia({ src: data.url, type: "audio", title: fileTitle });
+            if (data.id && typeof onMediaUpload === "function") {
+              onMediaUpload(data.id, "audio");
+            }
+          } else if (file.type.startsWith("audio/")) {
+            editor.commands.focus('end');
+            editor.chain().insertContent('<audio controls src="' + data.url + '" style="max-width:100%"' + titleAttr + '></audio>').focus('end').run();
+            setSelectedMedia({ src: data.url, type: "audio", title: fileTitle });
+            if (data.id && typeof onMediaUpload === "function") {
+              onMediaUpload(data.id, "audio");
+            }
+          } else if (file.type === "application/pdf") {
+            editor.commands.focus('end');
+            editor.chain().insertContent('<embed src="' + data.url + '" type="application/pdf" style="width:100%;min-height:400px;border-radius:8px;margin:8px 0;"' + titleAttr + ' />').focus('end').run();
+            setSelectedMedia({ src: data.url, type: "pdf", title: fileTitle });
+            if (data.id && typeof onMediaUpload === "function") {
+              onMediaUpload(data.id, "pdf");
+            }
+          } else if (file.type.startsWith("video/")) {
+            editor.commands.focus('end');
+            editor.chain().insertContent('<video controls src="' + data.url + '" style="max-width:100%"' + titleAttr + '></video>').focus('end').run();
+            setSelectedMedia({ src: data.url, type: "video", title: fileTitle });
+            if (data.id && typeof onMediaUpload === "function") {
+              onMediaUpload(data.id, "video");
+            }
+          } else if (file.type.startsWith("image/")) {
+            editor.commands.focus('end');
+            editor.chain().insertContent('<img src="' + data.url + '"' + titleAttr + ' />').focus('end').run();
+            setSelectedMedia({ src: data.url, type: "image", title: fileTitle });
+            if (data.id && typeof onMediaUpload === "function") {
+              onMediaUpload(data.id, "image");
+            }
+          } else {
+            editor.chain().focus().insertContent('<a href="' + data.url + '" target="_blank" rel="noopener noreferrer"' + titleAttr + '>' + file.name + '</a>').run();
+            if (data.id && typeof onMediaUpload === "function") {
+              onMediaUpload(data.id, file.type.split("/")[0]);
+            }
+          }
+
+          // After inserting, update the title attribute on the first media node if a title was provided
+          if (fileTitle) {
+            setTimeout(() => {
+              if (editor && editor.state) {
+                const { state, view } = editor;
+                let tr = state.tr;
+                let found = false;
+                state.doc.descendants((node, pos) => {
+                  if (["audio", "video", "image", "pdfembed"].includes(node.type.name) && !found) {
+                    tr = tr.setNodeMarkup(pos, undefined, {
+                      ...node.attrs,
+                      title: fileTitle
+                    });
+                    found = true;
+                    return false; // stop after first
+                  }
+                  return true;
+                });
+                if (found) {
+                  view.dispatch(tr);
+                  editor.commands.focus('end');
+                }
+              }
+            }, 0);
+          }
+        } else {
+          alert("File upload failed.");
+        }
+      })
+      .catch(() => {
+        alert("File upload failed.");
+      });
+    setAudioRecorderModalOpen(false);
+    setAttachmentModalOpen(false);
+    setMediaTitle("");
+    e.target.value = "";
+  };
+
+  // Handler for "Use this recording" in AudioRecorder
+  const handleAudioRecordingSelect = (audioObj) => {
+    if (!audioObj || !audioObj.blob) return;
+    const formData = new FormData();
+    formData.append("media", audioObj.blob, "recording.webm");
+    if (mediaTitle) formData.append("title", mediaTitle);
+    if (audioObj.title) {
+      formData.append("title", audioObj.title);
+    }
+    fetch("/api/posts/upload-media", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.url) {
+          editor.commands.focus('end');
+          const audioTitle = data.title || audioObj.title || "";
+          editor.chain().insertContent(`<audio controls src="${data.url}" style="max-width:100%"${audioTitle ? ` title="${audioTitle.replace(/"/g, "")}"` : ""}></audio>`).focus('end').run();
+          setSelectedMedia({ src: data.url, type: "audio", title: audioTitle });
+          if (data.id && typeof onMediaUpload === "function") {
+            onMediaUpload(data.id, "audio");
+          }
+          setAudioRecorderModalOpen(false);
+          setAttachmentModalOpen(false);
+        } else {
+          alert("Audio upload failed.");
+        }
+      })
+      .catch(() => {
+        alert("Audio upload failed.");
+      });
+  };
 
   // Prevent resetting content on every keystroke (which causes media to disappear)
   // Only update editor content if value prop changes from outside (e.g., after post submit)
@@ -180,6 +376,7 @@ const TiptapEditor = ({
         // Upload image to backend
         const formData = new FormData();
         formData.append("media", file);
+        if (mediaTitle) formData.append("title", mediaTitle);
         fetch("/api/posts/upload-media", {
           method: "POST",
           body: formData,
@@ -204,6 +401,7 @@ const TiptapEditor = ({
         // Upload video to backend
         const formData = new FormData();
         formData.append("media", file);
+        if (mediaTitle) formData.append("title", mediaTitle);
         fetch("/api/posts/upload-media", {
           method: "POST",
           body: formData,
@@ -242,6 +440,7 @@ const TiptapEditor = ({
         const file = new File([blob], "captured-image.png", { type: "image/png" });
         const formData = new FormData();
         formData.append("media", file);
+        if (mediaTitle) formData.append("title", mediaTitle);
         fetch("/api/posts/upload-media", {
           method: "POST",
           body: formData,
@@ -276,6 +475,7 @@ const TiptapEditor = ({
         const file = new File([blob], "captured-video.webm", { type: "video/webm" });
         const formData = new FormData();
         formData.append("media", file);
+        if (mediaTitle) formData.append("title", mediaTitle);
         fetch("/api/posts/upload-media", {
           method: "POST",
           body: formData,
@@ -302,6 +502,9 @@ const TiptapEditor = ({
   };
 
   if (!editor) return null;
+
+  // Post title state
+  const [postTitle, setPostTitle] = useState("");
 
   return (
     <Card
@@ -385,6 +588,58 @@ const TiptapEditor = ({
             </div>
           )}
         </div>
+        {/* Media title input below editor content but above media preview */}
+        {selectedMedia && (
+          <div className="mb-2">
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter media title"
+              value={mediaTitleInput}
+              onChange={e => setMediaTitleInput(e.target.value)}
+              onFocus={() => {
+                // When focusing, set input to current selectedMedia title
+                setMediaTitleInput(selectedMedia.title || "");
+              }}
+              onBlur={e => {
+                const newTitle = e.target.value;
+                setSelectedMedia({ ...selectedMedia, title: newTitle });
+                // Use Tiptap's transaction API to update the title attribute of the correct media node
+                if (editor && editor.state && selectedMedia && selectedMedia.src) {
+                  const { state, view } = editor;
+                  let tr = state.tr;
+                  let found = false;
+                  state.doc.descendants((node, pos) => {
+                    if (
+                      ["audio", "video", "image", "pdfembed"].includes(node.type.name) &&
+                      node.attrs &&
+                      node.attrs.src === selectedMedia.src &&
+                      !found
+                    ) {
+                      tr = tr.setNodeMarkup(pos, undefined, {
+                        ...node.attrs,
+                        title: newTitle
+                      });
+                      found = true;
+                      return false; // stop after first match
+                    }
+                    return true;
+                  });
+                  if (found) {
+                    view.dispatch(tr);
+                    // Force focus to ensure state is synced
+                    editor.commands.focus('end');
+                    setTimeout(() => {
+                      /* HTML after media title update (debug removed) */
+                    }, 0);
+                  } else {
+                    /* No matching media node found for src (debug removed) */
+                  }
+                }
+              }}
+            />
+          </div>
+        )}
         {/* Custom MediaPlayer preview */}
         {mediaPreview ? (
           <div className="my-4">{mediaPreview}</div>
@@ -393,6 +648,7 @@ const TiptapEditor = ({
             <MediaPlayer
               src={selectedMedia.src}
               type={selectedMedia.type}
+              title={selectedMedia.title}
               alt=""
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
@@ -426,56 +682,7 @@ const TiptapEditor = ({
             <button
               className="w-8 h-8 flex items-center justify-center rounded-full bg-purple-100 hover:bg-purple-200"
               title="Attach file (audio, PDF, etc.)"
-              onClick={() => {
-                // Create a hidden file input for audio/pdf/other
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = "audio/*,application/pdf";
-                input.onchange = (e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    const formData = new FormData();
-                    formData.append("media", file);
-                    fetch("/api/posts/upload-media", {
-                      method: "POST",
-                      body: formData,
-                    })
-                      .then((res) => res.json())
-                      .then((data) => {
-                        if (data.url) {
-                          if (file.type.startsWith("audio/")) {
-                            // Move cursor to end, insert audio, then move cursor after
-                            editor.commands.focus('end');
-                            editor.chain().insertContent(`<audio controls src="${data.url}" style="max-width:100%"></audio>`).focus('end').run();
-                            setSelectedMedia({ src: data.url, type: "audio" });
-                            if (data.id && typeof onMediaUpload === "function") {
-                              onMediaUpload(data.id, "audio");
-                            }
-                          } else if (file.type === "application/pdf") {
-                            // Move cursor to end, insert PDF, then move cursor after
-                            editor.commands.focus('end');
-                            editor.chain().insertContent(`<embed src="${data.url}" type="application/pdf" style="width:100%;min-height:400px;border-radius:8px;margin:8px 0;" />`).focus('end').run();
-                            setSelectedMedia({ src: data.url, type: "pdf" });
-                            if (data.id && typeof onMediaUpload === "function") {
-                              onMediaUpload(data.id, "pdf");
-                            }
-                          } else {
-                            editor.chain().focus().insertContent(`<a href="${data.url}" target="_blank" rel="noopener noreferrer">${file.name}</a>`).run();
-                            if (data.id && typeof onMediaUpload === "function") {
-                              onMediaUpload(data.id, file.type.split("/")[0]);
-                            }
-                          }
-                        } else {
-                          alert("File upload failed.");
-                        }
-                      })
-                      .catch(() => {
-                        alert("File upload failed.");
-                      });
-                  }
-                };
-                input.click();
-              }}
+              onClick={() => setAttachmentModalOpen(true)}
             >
               {/* Paperclip icon */}
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16.5 13.5V7a4.5 4.5 0 0 0-9 0v9a4.5 4.5 0 0 0 9 0V8.5" stroke="#7c3aed" strokeWidth="2" /><rect x="7" y="7" width="10" height="10" rx="5" fill="#ede9fe" /></svg>
@@ -568,6 +775,61 @@ const TiptapEditor = ({
           </div>
         )}
       </Modal>
+
+      {/* Attachment Modal */}
+      <Modal open={attachmentModalOpen} onClose={() => { setAttachmentModalOpen(false); }} showClose={false}>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Attach File or Record Audio</h3>
+          <div className="flex flex-col gap-4">
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Optional: Enter media title"
+              value={mediaTitle}
+              onChange={e => setMediaTitle(e.target.value)}
+              style={{ marginBottom: 8 }}
+            />
+            <button
+              className="w-full py-2 px-4 bg-purple-600 text-white rounded hover:bg-purple-700"
+              onClick={() => {
+                setAttachmentModalOpen(false);
+                setAudioRecorderModalOpen(true);
+              }}
+            >
+              Record Audio
+            </button>
+            <button
+              className="w-full py-2 px-4 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+              onClick={() => attachmentFileInputRef.current && attachmentFileInputRef.current.click()}
+            >
+              Select File from Device
+            </button>
+            <input
+              ref={attachmentFileInputRef}
+              type="file"
+              accept="audio/*,application/pdf,*"
+              className="hidden"
+              onChange={handleAttachmentFileChange}
+            />
+          </div>
+        </div>
+      </Modal>
+      {/* Audio Recorder Modal */}
+      <Modal open={audioRecorderModalOpen} onClose={() => setAudioRecorderModalOpen(false)} showClose={false}>
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Record Audio</h3>
+          <AudioRecorder
+            onSelect={handleAudioRecordingSelect}
+          />
+          <button
+            className="mt-4 w-full py-2 px-4 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+            onClick={() => setAudioRecorderModalOpen(false)}
+          >
+            Back
+          </button>
+        </div>
+      </Modal>
+
       {/* Post button */}
       <div className="px-4 pb-4">
         <button
@@ -578,8 +840,45 @@ const TiptapEditor = ({
           }`}
           disabled={!(editor.getText().trim() || hasMedia(editor.getHTML()))}
           onClick={() => {
+            // Before posting, ensure the latest mediaTitleInput is written to the editor node
+            if (selectedMedia && mediaTitleInput !== undefined && editor && selectedMedia.src) {
+              const { state, view } = editor;
+              let tr = state.tr;
+              let found = false;
+              state.doc.descendants((node, pos) => {
+                if (
+                  ["audio", "video", "image", "pdfembed"].includes(node.type.name) &&
+                  node.attrs &&
+                  node.attrs.src === selectedMedia.src &&
+                  !found
+                ) {
+                  tr = tr.setNodeMarkup(pos, undefined, {
+                    ...node.attrs,
+                    title: mediaTitleInput
+                  });
+                  found = true;
+                  return false;
+                }
+                return true;
+              });
+              if (found) {
+                view.dispatch(tr);
+                editor.commands.focus('end');
+              }
+            }
             if ((editor.getText().trim() || hasMedia(editor.getHTML())) && typeof onNext === "function") {
-              onNext(selectedMedia);
+              // Prefer the current mediaTitle input if set, else extract from HTML
+              let mediaTitleToSend = mediaTitle && mediaTitle.trim() ? mediaTitle.trim() : undefined;
+              if (!mediaTitleToSend) {
+                const html = editor.getHTML();
+                if (html) {
+                  const match = html.match(/<(audio|video|img|embed)[^>]*title="([^"]+)"[^>]*>/i);
+                  if (match && match[2]) {
+                    mediaTitleToSend = match[2];
+                  }
+                }
+              }
+              onNext(selectedMedia, mediaTitleToSend);
               // Do NOT clear the editor here; let the parent clear after successful post
             }
           }}

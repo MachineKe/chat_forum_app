@@ -14,14 +14,19 @@ function getUniqueMediaPlayerId() {
 }
 
 function getMediaType(src, type) {
-  if (type) {
-    if (type === "pdf") return "document";
-    if (type === "audio" || type === "video" || type === "image" || type === "document") return type;
-    // fallback for legacy/unknown types
+  // Always use the provided type prop if present
+  if (type && typeof type === "string") {
+    const t = type.toLowerCase();
+    if (t === "audio" || t.startsWith("audio/")) return "audio";
+    if (t === "video" || t.startsWith("video/")) return "video";
+    if (t === "image" || t.startsWith("image/")) return "image";
+    if (t === "pdf" || t === "document" || t === "application/pdf") return "document";
   }
+  // fallback for legacy/unknown types
   if (!src) return "unknown";
   const ext = src.split(".").pop().toLowerCase();
-  if (["mp4", "webm", "ogg", "mov"].includes(ext)) return "video";
+  if (["mp4", "mov"].includes(ext)) return "video";
+  if (["webm"].includes(ext)) return "audio"; // treat .webm as audio by default for this app
   if (["mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(ext)) return "audio";
   if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)) return "image";
   if (["pdf"].includes(ext)) return "document";
@@ -38,7 +43,18 @@ const MediaPlayer = ({
   loop = false,
   className = "",
   style = {},
+  title,
+  media, // NEW: allow passing a media object directly
+  ...rest
 }) => {
+  // Always use the latest title prop (do not store in state)
+  const mediaTitle =
+    typeof title !== "undefined"
+      ? title
+      : media && media.title
+      ? media.title
+      : undefined;
+
   const mediaType = getMediaType(src, type);
   const [viewerOpen, setViewerOpen] = useState(false);
   const idRef = useRef(getUniqueMediaPlayerId());
@@ -46,78 +62,85 @@ const MediaPlayer = ({
 
   if (!src) return null;
 
-  if (mediaType === "video") {
-    return (
-      <>
-        <div
-          ref={containerRef}
-          style={{ width: "100%", aspectRatio: "16/9", background: "#000", borderRadius: 8, overflow: "hidden", position: "relative" }}
-        >
-          <VideoPlayer
+  // Use mediaTitle in a custom title pane and above the media
+  const TitlePane = () =>
+    mediaTitle ? (
+      <div className="text-base font-semibold text-gray-800 mb-2" data-testid="media-title-pane">
+        {mediaType && mediaTitle
+          ? `${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)} title: ${mediaTitle}`
+          : mediaTitle}
+      </div>
+    ) : null;
+
+  return (
+    <div>
+      <TitlePane />
+      {mediaType === "video" && (
+        <>
+          <div
+            ref={containerRef}
+            style={{ width: "100%", aspectRatio: "16/9", background: "#000", borderRadius: 8, overflow: "hidden", position: "relative" }}
+          >
+            <VideoPlayer
+              ref={mediaRef}
+              src={src}
+              poster={poster}
+              controls={controls}
+              autoPlay={false}
+              loop={loop}
+              muted={true}
+              className={className}
+              style={{ ...style, width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
+              videoId={idRef.current}
+              onClick={() => setViewerOpen(true)}
+              onPlay={handlePlay}
+              {...rest}
+            />
+          </div>
+          <VideoViewer src={src} open={viewerOpen} onClose={() => setViewerOpen(false)} poster={poster} />
+        </>
+      )}
+      {mediaType === "audio" && (
+        <div ref={containerRef}>
+          <AudioPlayer
             ref={mediaRef}
             src={src}
-            poster={poster}
             controls={controls}
             autoPlay={false}
             loop={loop}
             muted={true}
             className={className}
-            style={{ ...style, width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
-            videoId={idRef.current}
-            onClick={() => setViewerOpen(true)}
+            style={style}
             onPlay={handlePlay}
+            {...rest}
           />
         </div>
-        <VideoViewer src={src} open={viewerOpen} onClose={() => setViewerOpen(false)} poster={poster} />
-      </>
-    );
-  }
-
-  if (mediaType === "audio") {
-    return (
-      <div ref={containerRef}>
-        <AudioPlayer
-          ref={mediaRef}
+      )}
+      {mediaType === "image" && (
+        <>
+          <ImageProcessor
+            src={src}
+            alt={alt}
+            className={className}
+            style={{ ...style, cursor: "pointer" }}
+            onClick={() => setViewerOpen(true)}
+            {...rest}
+          />
+          <ImageViewer src={src} alt={alt} open={viewerOpen} onClose={() => setViewerOpen(false)} />
+        </>
+      )}
+      {mediaType === "document" && (
+        <DocumentCarousel
           src={src}
-          controls={controls}
-          autoPlay={false}
-          loop={loop}
-          muted={true}
+          type="application/pdf"
           className={className}
           style={style}
-          onPlay={handlePlay}
+          {...rest}
         />
-      </div>
-    );
-  }
-
-  if (mediaType === "image") {
-    return (
-      <>
-        <ImageProcessor
-          src={src}
-          alt={alt}
-          className={className}
-          style={{ ...style, cursor: "pointer" }}
-          onClick={() => setViewerOpen(true)}
-        />
-        <ImageViewer src={src} alt={alt} open={viewerOpen} onClose={() => setViewerOpen(false)} />
-      </>
-    );
-  }
-
-  if (mediaType === "document") {
-    return (
-      <DocumentCarousel
-        src={src}
-        type="application/pdf"
-        className={className}
-        style={style}
-      />
-    );
-  }
-
-  return <span>Unsupported media type</span>;
+      )}
+      {mediaType === "unknown" && <span>Unsupported media type</span>}
+    </div>
+  );
 };
 
 export default MediaPlayer;

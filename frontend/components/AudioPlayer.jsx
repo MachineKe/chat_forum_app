@@ -140,6 +140,7 @@ const AudioPlayer = forwardRef(
           loop={loop}
           muted={muted}
           style={{ width: "100%", marginTop: height <= 120 ? 8 : 40 }}
+          {...(src && src.toLowerCase().endsWith(".webm") ? { type: "audio/webm" } : {})}
         >
           Your browser does not support the audio element.
         </audio>

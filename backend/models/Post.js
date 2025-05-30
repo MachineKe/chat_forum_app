@@ -15,6 +15,14 @@ const Post = sequelize.define('Post', {
     type: DataTypes.TEXT,
     allowNull: false
   },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    media_title: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   media_id: {
     type: DataTypes.INTEGER,
     allowNull: true,

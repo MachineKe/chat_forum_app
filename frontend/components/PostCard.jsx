@@ -39,6 +39,7 @@ const PostCard = ({
   media: propMedia,
   media_type: propMediaType,
   media_path: propMediaPath,
+  media_title, // <-- add this line
   user // new: profile user object for fallbacks
 }) => {
   const navigate = useNavigate();
@@ -317,12 +318,15 @@ const PostCard = ({
       {/* Post content first, then media */}
       <div className="px-4 pb-2">
         <div className="text-gray-900 text-base mb-2" style={{ minHeight: 32 }}>
-          <ExcessContentManager content={content} wordLimit={30} />
+          {renderTextBeforeMedia(content, media_title)}
         </div>
       </div>
       {/* Media (if present) */}
+      {/*
+        In all views, rely on renderTextBeforeMedia(content) to render audio, video, image, and embed tags.
+        Only render the main media block if mediaType is not ambiguous and not .webm (unless type is explicitly "video").
+      */}
       {(() => {
-        // Enhanced: handle media as object or array, and various field names
         let mediaType = media_type || null;
         let mediaPath = media_path || null;
         let mediaObj = media;
@@ -347,6 +351,7 @@ const PostCard = ({
             null;
         }
 
+        // Always render the main media block if mediaType and mediaPath are present
         if (mediaPath && mediaType) {
           const isDocument = (mediaType === "document" || mediaType === "pdf" || (typeof mediaPath === "string" && mediaPath.toLowerCase().endsWith(".pdf")));
           return (
@@ -355,7 +360,7 @@ const PostCard = ({
                 isDocument
                   ? "pt-2"
                   : mediaType === "audio"
-                  ? "px-4" // remove pt-2 for audio, so it sits flush above
+                  ? "px-4"
                   : "px-4 pt-2"
               }
               style={
@@ -364,9 +369,11 @@ const PostCard = ({
                   : undefined
               }
             >
+              {console.log("PostCard MediaPlayer title:", media_title)}
               <MediaPlayer
                 src={mediaPath}
                 type={mediaType}
+                title={media_title}
                 style={{
                   maxWidth: "100%",
                   minHeight: mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined,
@@ -615,7 +622,7 @@ function Comment({ comment, comments, handleAddComment, user, loading }) {
   );
 }
 
-function renderTextBeforeMedia(content) {
+function renderTextBeforeMedia(content, media_title) {
   try {
     if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
       return <span dangerouslySetInnerHTML={{ __html: content }} />;
@@ -623,23 +630,6 @@ function renderTextBeforeMedia(content) {
     const parser = new window.DOMParser();
     const doc = parser.parseFromString(content, "text/html");
     const nodes = Array.from(doc.body.childNodes);
-
-    // Collect all text nodes (recursively), and the first media node
-    let allText = "";
-    let firstMediaNode = null;
-
-    function collectTextAndMedia(node) {
-      if (node.nodeType === 3) {
-        allText += node.textContent;
-      } else if (node.nodeType === 1) {
-        if (!firstMediaNode && ["IMG", "VIDEO", "AUDIO", "EMBED"].includes(node.tagName)) {
-          firstMediaNode = node;
-        }
-        // Recursively collect text from children
-        Array.from(node.childNodes).forEach(collectTextAndMedia);
-      }
-    }
-    nodes.forEach(collectTextAndMedia);
 
     // Helper to convert DOM node to React element
     function domToReact(node, key) {
@@ -654,7 +644,7 @@ function renderTextBeforeMedia(content) {
               key={key}
               src={src}
               type="image"
-              alt=""
+              title={media_title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
@@ -666,6 +656,7 @@ function renderTextBeforeMedia(content) {
               key={key}
               src={src}
               type="video"
+              title={media_title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
@@ -677,14 +668,12 @@ function renderTextBeforeMedia(content) {
               key={key}
               src={src}
               type="audio"
+              title={media_title}
               style={{
                 maxWidth: "100%",
-                minHeight: 120,
                 borderRadius: 8,
                 margin: "8px 0"
               }}
-              height={120}
-              barCount={64}
             />
           );
         }
@@ -696,8 +685,32 @@ function renderTextBeforeMedia(content) {
               key={key}
               src={src}
               type={type === "application/pdf" ? "pdf" : "document"}
+              title={media_title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
+          );
+        }
+        if (node.tagName === "A") {
+          // Render generic file links as download links
+          const href = node.getAttribute("href");
+          const text = node.textContent || href;
+          return (
+            <a
+              key={key}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block",
+                margin: "8px 0",
+                color: "#2563eb",
+                textDecoration: "underline",
+                wordBreak: "break-all"
+              }}
+              download
+            >
+              {text}
+            </a>
           );
         }
         // For other elements, recursively render children
@@ -710,10 +723,10 @@ function renderTextBeforeMedia(content) {
       return null;
     }
 
+    // Render all top-level nodes in order
     return (
       <>
-        {allText && <span>{allText}</span>}
-        {firstMediaNode && domToReact(firstMediaNode, "media-0")}
+        {nodes.map((node, idx) => domToReact(node, `node-${idx}`))}
       </>
     );
   } catch (err) {

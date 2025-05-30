@@ -19,6 +19,10 @@ const Media = sequelize.define('Media', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   uploader_id: {
     type: DataTypes.INTEGER,
     allowNull: true

@@ -138,12 +138,13 @@ function extractFirstMediaFromHtml(html) {
   const doc = parser.parseFromString(html, "text/html");
   const node = Array.from(doc.body.querySelectorAll("img,video,audio,embed"))[0];
   if (!node) return null;
-  if (node.tagName === "IMG") return { url: node.getAttribute("src"), type: "image" };
-  if (node.tagName === "VIDEO") return { url: node.getAttribute("src"), type: "video" };
-  if (node.tagName === "AUDIO") return { url: node.getAttribute("src"), type: "audio" };
+  const title = node.getAttribute("title") || "";
+  if (node.tagName === "IMG") return { url: node.getAttribute("src"), type: "image", title };
+  if (node.tagName === "VIDEO") return { url: node.getAttribute("src"), type: "video", title };
+  if (node.tagName === "AUDIO") return { url: node.getAttribute("src"), type: "audio", title };
   if (node.tagName === "EMBED") {
     const type = node.getAttribute("type");
-    return { url: node.getAttribute("src"), type: type === "application/pdf" ? "pdf" : "document" };
+    return { url: node.getAttribute("src"), type: type === "application/pdf" ? "pdf" : "document", title };
   }
   return null;
 }
@@ -193,6 +194,7 @@ const PostSettingsCard = ({ content, media, onBack, onPost, loading, user = { na
             <MediaPlayer
               src={previewMedia.url}
               type={previewMedia.type}
+              title={previewMedia.title}
               alt=""
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />

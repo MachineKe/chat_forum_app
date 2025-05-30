@@ -4,57 +4,7 @@ const { Comment } = require("../models");
 const PostLike = require("../models/PostLike");
 const path = require("path");
 
-exports.getCommentsForPost = async (req, res) => {
-  const { postId } = req.params;
-  try {
-    const { Comment, User, Media } = require("../models");
-    const comments = await Comment.findAll({
-      where: { post_id: Number(postId) },
-      order: [["created_at", "ASC"]],
-      include: [
-        {
-          model: User,
-          as: "author",
-          attributes: ["username", "full_name", "avatar"],
-        },
-      ],
-    });
-
-    // Fetch all media for comments in one query
-    const mediaIds = comments.map(c => c.media_id).filter(Boolean);
-    let mediaMap = {};
-    if (mediaIds.length > 0) {
-      const mediaRecords = await Media.findAll({ where: { id: mediaIds } });
-      mediaMap = Object.fromEntries(mediaRecords.map(m => [m.id, m]));
-    }
-
-    const formatted = comments.map(comment => ({
-      id: comment.id,
-      content: comment.content,
-      author: comment.author ? (comment.author.full_name || comment.author.username) : "Unknown",
-      username: comment.author ? comment.author.username || "" : "",
-      avatar: comment.author ? comment.author.avatar || "" : "",
-      createdAt: comment.created_at,
-      parent_id: comment.parent_id,
-      media: comment.media_id && mediaMap[comment.media_id]
-        ? {
-            id: mediaMap[comment.media_id].id,
-            url: mediaMap[comment.media_id].url,
-            type: mediaMap[comment.media_id].type,
-            filename: mediaMap[comment.media_id].filename,
-          }
-        : null,
-      media_type: comment.media_type || (comment.media_id && mediaMap[comment.media_id] ? mediaMap[comment.media_id].type : null),
-      media_path: comment.media_path || (comment.media_id && mediaMap[comment.media_id] ? mediaMap[comment.media_id].url : null)
-    }));
-    return res.json(formatted);
-  } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch comments.", details: err.message });
-  }
-};
-
-// POST /api/posts/:postId/like
-exports.toggleLike = async (req, res) => {
+const toggleLike = async (req, res) => {
   const { postId } = req.params;
   const { user_id } = req.body;
   if (!user_id) {
@@ -74,8 +24,45 @@ exports.toggleLike = async (req, res) => {
   }
 };
 
+const getCommentsForPost = async (req, res) => {
+  const { postId } = req.params;
+  try {
+    // Fetch all comments for the post, including author info
+    const comments = await Comment.findAll({
+      where: { post_id: postId },
+      order: [["created_at", "ASC"]],
+      include: [
+        {
+          model: User,
+          as: "author",
+          attributes: ["username", "full_name", "avatar"],
+        },
+      ],
+    });
+    // Format comments for frontend
+    const formatted = comments.map(comment => ({
+      id: comment.id,
+      content: comment.content,
+      // REMOVE: title: comment.title,
+      media_title: comment.media_title,
+      author: comment.author ? (comment.author.full_name || comment.author.username) : "Unknown",
+      username: comment.author ? comment.author.username || "" : "",
+      avatar: comment.author ? comment.author.avatar || "" : "",
+      createdAt: comment.created_at,
+      parent_id: comment.parent_id,
+      media_id: comment.media_id,
+      media_type: comment.media_type,
+      media_path: comment.media_path
+    }));
+    return res.json(formatted);
+  } catch (err) {
+    console.error("Error in getCommentsForPost:", err);
+    return res.status(500).json({ error: "Failed to fetch comments.", details: err.message, stack: err.stack });
+  }
+}
+
 // GET /api/posts/:postId/likes
-exports.getLikes = async (req, res) => {
+const getLikes = async (req, res) => {
   const { postId } = req.params;
   const { user_id } = req.query;
   try {
@@ -90,9 +77,9 @@ exports.getLikes = async (req, res) => {
   }
 };
 
-exports.addCommentToPost = async (req, res) => {
+const addCommentToPost = async (req, res) => {
   const { postId } = req.params;
-  const { user_id, content, parent_id, media_id, media_type, media_path } = req.body;
+  const { user_id, content, parent_id, media_id, media_type, media_path, title } = req.body;
   if (!user_id || !content) {
     return res.status(400).json({ error: "user_id and content are required." });
   }
@@ -172,6 +159,7 @@ exports.addCommentToPost = async (req, res) => {
       post_id: postId,
       user_id,
       content: text,
+      title: title || null,
       parent_id: parent_id || null,
       media_id: resolvedMediaId,
       media_type: type,
@@ -204,7 +192,7 @@ exports.addCommentToPost = async (req, res) => {
   }
 };
 
-exports.getAllPosts = async (req, res) => {
+const getAllPosts = async (req, res) => {
   try {
     const { commented_by, liked_by } = req.query;
     let posts;
@@ -301,7 +289,7 @@ exports.getAllPosts = async (req, res) => {
       mediaMap = Object.fromEntries(mediaRecords.map(m => [m.id, m]));
     }
 
-    // Format posts to include author username, comment count, view count, and media
+    // Format posts to include author username, comment count, view count, media, and media_title
     const formatted = posts.map(post => ({
       id: post.id,
       content: post.content,
@@ -311,12 +299,14 @@ exports.getAllPosts = async (req, res) => {
       createdAt: post.created_at,
       commentCount: commentCounts[post.id] || 0,
       viewCount: post.view_count,
+      media_title: post.media_title,
       media: post.media_id && mediaMap[post.media_id]
         ? {
             id: mediaMap[post.media_id].id,
             url: mediaMap[post.media_id].url,
             type: mediaMap[post.media_id].type,
             filename: mediaMap[post.media_id].filename,
+            title: mediaMap[post.media_id].title, // include media title
           }
         : null,
     }));
@@ -326,11 +316,17 @@ exports.getAllPosts = async (req, res) => {
   }
 };
 
-exports.createPost = async (req, res) => {
-  const { user_id, content, media_id, media_type, media_path } = req.body;
+const createPost = async (req, res) => {
+  const { user_id, content, media_id, media_type, media_path, title, media_title } = req.body;
   if (!user_id) {
     return res.status(400).json({ error: "user_id is required." });
   }
+  // Strip HTML tags from content before saving
+  function stripHtml(html) {
+    if (!html) return "";
+    return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  }
+  const plainTextContent = stripHtml(content);
 
   // Helper to clean content and set media marker
   function parseContentAndMedia(content, media_type, media_path) {
@@ -407,17 +403,36 @@ exports.createPost = async (req, res) => {
     // Clean content and set marker
     const { text, type, path } = parseContentAndMedia(content, finalMediaType, finalMediaPath);
 
-    const post = await Post.create({
+    // Save only the plain text content, not the HTML
+    const newPost = await Post.create({
       user_id,
-      content: text,
+      content: plainTextContent,
+      title: title || null,
+      media_title: media_title || null,
       media_id: media_id || null,
-      media_type: type,
-      media_path: path
+      media_type: type || null,
+      media_path: path || null,
     });
+
+    // Debug: log media_title and media_id
+    console.log("createPost: media_id =", media_id, "media_title =", media_title);
+
+    // If media_id and media_title are provided, update the Media's title as well
+    let updatedMedia = null;
+    if (media_id && media_title) {
+      const Media = require("../models/Media");
+      const [affectedRows] = await Media.update(
+        { title: media_title },
+        { where: { id: media_id } }
+      );
+      console.log("Media.update result: affectedRows =", affectedRows);
+      // Re-fetch the updated media record to get the new title
+      updatedMedia = await Media.findByPk(media_id);
+    }
 
     // Fetch with author and media
     const postWithAuthor = await Post.findOne({
-      where: { id: post.id },
+      where: { id: newPost.id },
       include: [
         {
           model: User,
@@ -430,25 +445,40 @@ exports.createPost = async (req, res) => {
         },
       ],
     });
+
+    // If we have an updated media, use it in the response
+    let mediaResponse = null;
+    if (updatedMedia) {
+      mediaResponse = {
+        id: updatedMedia.id,
+        url: updatedMedia.url,
+        type: updatedMedia.type,
+        filename: updatedMedia.filename,
+        title: updatedMedia.title,
+      };
+    } else if (postWithAuthor.media) {
+      mediaResponse = {
+        id: postWithAuthor.media.id,
+        url: postWithAuthor.media.url,
+        type: postWithAuthor.media.type,
+        filename: postWithAuthor.media.filename,
+        title: postWithAuthor.media.title,
+      };
+    }
+
     return res.status(201).json({
       id: postWithAuthor.id,
       content: postWithAuthor.content,
       author: postWithAuthor.author ? (postWithAuthor.author.full_name || postWithAuthor.author.username) : "Unknown",
       avatar: postWithAuthor.author ? postWithAuthor.author.avatar || "" : "",
       createdAt: postWithAuthor.created_at,
-      media: postWithAuthor.media
-        ? {
-            id: postWithAuthor.media.id,
-            url: postWithAuthor.media.url,
-            type: postWithAuthor.media.type,
-            filename: postWithAuthor.media.filename,
-          }
-        : null,
+      media: mediaResponse,
       media_type: postWithAuthor.media_type,
       media_path: postWithAuthor.media_path
     });
   } catch (err) {
-    return res.status(500).json({ error: "Failed to create post.", details: err.message });
+    console.error("Error in createPost:", err);
+    return res.status(500).json({ error: "Failed to create post.", details: err.message, stack: err.stack });
   }
 };
 
@@ -458,34 +488,44 @@ exports.createPost = async (req, res) => {
  */
 const Media = require("../models/Media");
 
-exports.uploadMedia = async (req, res) => {
+const uploadMedia = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded." });
   }
+  // Optional title from form-data
+  const title = req.body.title || null;
   // Determine subfolder from destination
   const destParts = req.file.destination.split(path.sep);
   const uploadsIdx = destParts.lastIndexOf("uploads");
   let subfolder = "";
-  if (uploadsIdx !== -1 && destParts.length > uploadsIdx + 1) {
+  if (req.file.originalname && req.file.originalname.toLowerCase().endsWith('.webm')) {
+    subfolder = "audio";
+  } else if (uploadsIdx !== -1 && destParts.length > uploadsIdx + 1) {
     subfolder = destParts[uploadsIdx + 1];
   }
   const fileUrl = `/uploads/${subfolder}/${req.file.filename}`;
   try {
+    // If file is .webm, force type to audio/webm for "attach file" uploads
+    let mediaType = req.file.mimetype;
+    if (req.file.originalname && req.file.originalname.toLowerCase().endsWith('.webm')) {
+      mediaType = 'audio/webm';
+    }
     const media = await Media.create({
       filename: req.file.filename,
       url: fileUrl,
-      type: req.file.mimetype,
+      type: mediaType,
+      title: title,
       uploader_id: req.user ? req.user.id : null, // If using authentication middleware
       created_at: new Date(),
     });
-    return res.json({ id: media.id, url: media.url });
+    return res.json({ id: media.id, url: media.url, title: media.title });
   } catch (err) {
     return res.status(500).json({ error: "Failed to save media record.", details: err.message });
   }
 };
 
   // POST /api/posts/:postId/view
-exports.incrementView = async (req, res) => {
+const incrementView = async (req, res) => {
   const { postId } = req.params;
   try {
     const post = await Post.findByPk(postId);
@@ -501,7 +541,7 @@ exports.incrementView = async (req, res) => {
 };
 
 // GET /api/posts/:postId
-exports.getPostById = async (req, res) => {
+const getPostById = async (req, res) => {
   const { postId } = req.params;
   try {
     const post = await Post.findOne({
@@ -529,6 +569,7 @@ exports.getPostById = async (req, res) => {
       avatar: post.author ? post.author.avatar || "" : "",
       createdAt: post.created_at,
       viewCount: post.view_count,
+      media_title: post.media_title,
       media: post.media
         ? {
             id: post.media.id,
@@ -543,4 +584,16 @@ exports.getPostById = async (req, res) => {
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch post.", details: err.message });
   }
+};
+
+module.exports = {
+  getCommentsForPost,
+  toggleLike,
+  getLikes,
+  addCommentToPost,
+  getAllPosts,
+  createPost,
+  uploadMedia,
+  incrementView,
+  getPostById,
 };

@@ -23,7 +23,7 @@ import BackButton from "./BackButton";
  * - Displays waveform, timer, and controls
  * - After recording, shows playback and actions
  * - Props:
- *   onSave(blob), onUpload(blob), onShare(blob), onSummary(blob), onTranscribe(blob)
+ *   onSave(blob), onUpload(blob), onShare(blob), onSummary(blob), onTranscribe(blob), onSelect(blob)
  */
 const AudioRecorder = ({
   onSave,
@@ -31,6 +31,7 @@ const AudioRecorder = ({
   onShare,
   onSummary,
   onTranscribe,
+  onSelect, // NEW: callback for "Use this recording"
   maxDuration = 60, // seconds
 }) => {
   const [recording, setRecording] = useState(false);
@@ -42,6 +43,7 @@ const AudioRecorder = ({
   const [intervalId, setIntervalId] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [waveformData, setWaveformData] = useState([]);
+  const [title, setTitle] = useState("");
   const audioChunks = useRef([]);
 
   // Timer logic
@@ -258,6 +260,17 @@ const AudioRecorder = ({
         <div>
         
         <div className="bg-[#06232e] rounded-2xl p-6 pb-10 flex flex-col items-center relative">
+            {/* Optional title input */}
+            <div className="w-full flex flex-col items-center mb-4">
+              <input
+                type="text"
+                className="w-full max-w-md px-4 py-2 rounded border border-gray-300 text-lg mb-2"
+                placeholder="Optional title for this audio"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                maxLength={100}
+              />
+            </div>
             {/* AI Actions */}
             <div className="absolute right-6 top-6 flex flex-col gap-2">
               <button
@@ -285,6 +298,13 @@ const AudioRecorder = ({
           </div>
           {/* Actions */}
           <div className="flex justify-center gap-12 mt-6">
+            <button
+              className="flex flex-col items-center text-green-600 hover:underline font-bold"
+              onClick={() => onSelect && onSelect({ blob: audioBlob, title })}
+            >
+              <FiCircle className="text-2xl" />
+              <span>Use this recording</span>
+            </button>
             <button
               className="flex flex-col items-center text-blue-500 hover:underline"
               onClick={() => onShare && onShare(audioBlob)}

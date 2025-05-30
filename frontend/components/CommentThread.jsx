@@ -171,6 +171,7 @@ const CommentThread = ({
                   <MediaPlayer
                     src={mediaPath}
                     type={mediaType}
+                    title={typeof media_title !== "undefined" ? media_title : (mediaObj && mediaObj.title ? mediaObj.title : undefined)}
                     style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
                   />
                 </div>

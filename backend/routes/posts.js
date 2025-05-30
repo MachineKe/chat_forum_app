@@ -13,10 +13,14 @@ const storage = multer.diskStorage({
     console.log("Multer upload file mimetype:", file.mimetype, "originalname:", file.originalname);
     if (file.mimetype.startsWith("image/")) {
       subfolder = "photos";
+    } else if (
+      file.mimetype.startsWith("audio/") ||
+      (file.originalname && file.originalname.toLowerCase().endsWith(".webm") && file.fieldname === "media")
+    ) {
+      // Save .webm files to audio if they are uploaded as 'media' (audio recorder)
+      subfolder = "audio";
     } else if (file.mimetype.startsWith("video/")) {
       subfolder = "videos";
-    } else if (file.mimetype.startsWith("audio/")) {
-      subfolder = "audio";
     } else if (
       file.mimetype === "application/pdf" ||
       file.mimetype === "application/msword" ||

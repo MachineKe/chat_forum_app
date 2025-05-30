@@ -13,22 +13,18 @@ const AudioRecorderDemo = () => {
   };
 
   const handleUpload = (blob) => {
-    alert("Upload handler: implement upload logic here.");
     // Example: upload to server with fetch/FormData
   };
 
   const handleShare = (blob) => {
-    alert("Share handler: implement share logic here.");
     // Example: use Web Share API or copy link
   };
 
   const handleSummary = (blob) => {
-    alert("AI Summary handler: implement AI summary logic here.");
     // Example: send audio to backend for AI summary
   };
 
   const handleTranscribe = (blob) => {
-    alert("AI to Text handler: implement transcription logic here.");
     // Example: send audio to backend for transcription
   };
 

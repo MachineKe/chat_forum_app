@@ -139,6 +139,10 @@ const PostDetail = () => {
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (!post) return <div className="p-8 text-center">Post not found.</div>;
 
+  // Debug: log the post content to verify if media HTML is present
+  // eslint-disable-next-line
+  console.log("Post content for debugging:", post.content);
+
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
       <div className="flex-1 flex justify-center w-full pt-6">
@@ -160,6 +164,7 @@ const PostDetail = () => {
             media={post.media}
             media_type={post.media_type}
             media_path={post.media_path}
+            media_title={post.media_title}
             user={user}
           />
           <div className="flex justify-center px-4 py-4 border-b">

@@ -18,6 +18,7 @@ const Forum = () => {
   const [mediaId, setMediaId] = useState(null);
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaType, setMediaType] = useState(null);
+  const [mediaTitle, setMediaTitle] = useState("");
 
   // Use custom hooks for user and posts
   const {
@@ -55,11 +56,14 @@ const Forum = () => {
       setLoading(false);
       return;
     }
+    // Debug: log mediaTitle before sending
+    console.log("handleSubmit: mediaTitle =", mediaTitle);
+    // Use mediaTitle from state (set on Next)
     const data = await createPost({
       user_id: userId,
       content,
       media_id: mediaId || undefined,
-      media_type: mediaType || undefined,
+      media_title: mediaTitle || ""
     });
     if (!data) {
       setError("Failed to create post");
@@ -109,8 +113,10 @@ const Forum = () => {
                   onChange={setContent}
                   placeholder="What's happening?"
                   minHeight={80}
-                  onNext={(media) => {
+                  onNext={(media, mediaTitleFromContent) => {
+                    setContent(editorContent => editorContent); // no-op, but ensures state is not reset
                     setSelectedMedia(media);
+                    setMediaTitle(mediaTitleFromContent || "");
                     setShowSettings(true);
                   }}
                   onBlur={() => {
@@ -155,6 +161,7 @@ const Forum = () => {
                   commentCount={post.commentCount}
                   viewCount={post.viewCount}
                   media={post.media}
+                  media_title={post.media_title}
                   user={{
                     full_name: fullName,
                     username,

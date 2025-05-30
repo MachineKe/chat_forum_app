@@ -29,7 +29,7 @@ export default function usePosts() {
   }, []);
 
   // Create a new post
-  const createPost = async ({ user_id, content, media_id }) => {
+  const createPost = async ({ user_id, content, media_id, media_title }) => {
     setLoading(true);
     setError("");
     try {
@@ -40,6 +40,7 @@ export default function usePosts() {
           user_id,
           content,
           media_id: media_id || undefined,
+          media_title: media_title || undefined,
         }),
       });
       const data = await res.json();
