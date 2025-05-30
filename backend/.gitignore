@@ -1,2 +1,6 @@
 /public/uploads/photos/
 /public/uploads/videos/
+/public/uploads/audio/
+/public/uploads/others/
+/public/uploads/documents/
+/public/uploads/*.webm
