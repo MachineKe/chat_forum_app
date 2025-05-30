@@ -79,7 +79,7 @@ const getLikes = async (req, res) => {
 
 const addCommentToPost = async (req, res) => {
   const { postId } = req.params;
-  const { user_id, content, parent_id, media_id, media_type, media_path, title } = req.body;
+  const { user_id, content, parent_id, media_id, media_type, media_path, title, media_title } = req.body;
   if (!user_id || !content) {
     return res.status(400).json({ error: "user_id and content are required." });
   }
@@ -160,6 +160,7 @@ const addCommentToPost = async (req, res) => {
       user_id,
       content: text,
       title: title || null,
+      media_title: media_title || null,
       parent_id: parent_id || null,
       media_id: resolvedMediaId,
       media_type: type,
@@ -185,7 +186,8 @@ const addCommentToPost = async (req, res) => {
       parent_id: commentWithAuthor.parent_id,
       media_id: commentWithAuthor.media_id,
       media_type: commentWithAuthor.media_type,
-      media_path: commentWithAuthor.media_path
+      media_path: commentWithAuthor.media_path,
+      media_title: commentWithAuthor.media_title
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to add comment.", details: err.message });

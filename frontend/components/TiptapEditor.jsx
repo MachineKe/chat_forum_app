@@ -878,7 +878,8 @@ const TiptapEditor = ({
                   }
                 }
               }
-              onNext(selectedMedia, mediaTitleToSend);
+              // Pass the editor instance to onNext for both post and comment flows
+              onNext(editor, selectedMedia, mediaTitleToSend);
               // Do NOT clear the editor here; let the parent clear after successful post
             }
           }}

@@ -59,6 +59,14 @@ const PostDetail = () => {
       alert("User not found.");
       return;
     }
+    // Extract media title from reply HTML
+    let mediaTitleToSend = undefined;
+    if (reply) {
+      const match = reply.match(/<(audio|video|img|embed)[^>]*title="([^"]+)"[^>]*>/i);
+      if (match && match[2]) {
+        mediaTitleToSend = match[2];
+      }
+    }
     try {
       const res = await fetch(`/api/posts/${id}/comments`, {
         method: "POST",
@@ -68,7 +76,8 @@ const PostDetail = () => {
           content: reply,
           parent_id: null,
           media_id: replyMediaId || undefined,
-          media_type: replyMediaType || undefined
+          media_type: replyMediaType || undefined,
+          media_title: mediaTitleToSend || undefined
         }),
       });
       if (!res.ok) {
@@ -79,17 +88,21 @@ const PostDetail = () => {
       setReplyMediaId(null);
       setReplyMediaType(null);
       setIsReplyEditorActive(false);
-      fetch(`/api/posts/${id}/comments`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) setComments(data);
-        });
+      if (typeof fetchComments === "function") {
+        fetchComments();
+      } else {
+        fetch(`/api/posts/${id}/comments`)
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) setComments(data);
+          });
+      }
     } catch {
       alert("Network error.");
     }
   }
 
-  async function handleCommentReply(parentId, content, mediaId, mediaType) {
+  async function handleCommentReply(parentId, content, mediaId, mediaTitle) {
     if (!content.trim() && !mediaId) return;
     if (!user || !user.email) {
       alert("You must be logged in to reply.");
@@ -119,7 +132,7 @@ const PostDetail = () => {
           content,
           parent_id: parentId,
           media_id: mediaId || undefined,
-          media_type: mediaType || replyMediaTypes[parentId] || undefined
+          media_title: mediaTitle || undefined
         }),
       });
       if (!res.ok) {

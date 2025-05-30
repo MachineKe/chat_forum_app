@@ -1,5 +1,18 @@
 import React, { useState, useRef } from "react";
 import TiptapEditor, { renderMediaPreviewOnly } from "./TiptapEditor";
+
+// Helper to format relative time
+function formatRelativeTime(dateString) {
+  if (!dateString) return "";
+  const now = new Date();
+  const date = new Date(dateString);
+  const diff = Math.floor((now - date) / 1000); // seconds
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
+  return date.toLocaleDateString();
+}
 import PlainText from "./PlainText";
 import ExcessContentManager from "./ExcessContentManager";
 import Avatar from "./Avatar";
@@ -136,7 +149,6 @@ const CommentThread = ({
             <span className="text-gray-500 text-xs">
               @{comment.username ? comment.username : comment.author?.toLowerCase().replace(/\s/g, "")}
             </span>
-            <span className="text-gray-400 text-xs">· 1h</span>
           </div>
           {/* Render media if present (robust extraction) */}
           {(() => {
@@ -171,7 +183,7 @@ const CommentThread = ({
                   <MediaPlayer
                     src={mediaPath}
                     type={mediaType}
-                    title={typeof media_title !== "undefined" ? media_title : (mediaObj && mediaObj.title ? mediaObj.title : undefined)}
+                    title={comment.media_title || (mediaObj && mediaObj.title) || undefined}
                     style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
                   />
                 </div>
@@ -183,7 +195,7 @@ const CommentThread = ({
             <ExcessContentManager content={comment.content} wordLimit={20} />
           </div>
           <div className="flex items-center gap-4 text-gray-500 text-xs mt-1">
-            <span>57m</span>
+            <span>{formatRelativeTime(comment.createdAt)}</span>
             <LikeButton
               liked={liked}
               loading={likeLoading}
@@ -196,8 +208,7 @@ const CommentThread = ({
               tabIndex={0}
               onClick={() => {
                 setReplyingToCommentId(comment.id);
-                setIsCommentReplyEditorActive(false);
-                setCommentReplyContent("");
+                setReplyContent("");
               }}
               style={{ padding: 0 }}
             >
@@ -272,8 +283,49 @@ const CommentThread = ({
                       setReplyMediaId(id);
                       setReplyMedia({ id, type, url });
                     }}
-                    onNext={() => {
-                      if (onReply) onReply(comment.id, replyContent, replyMediaId);
+                    onNext={(editorInstance, _selectedMedia, _mediaTitleToSend) => {
+                      // Ensure latest media title input is written to the editor node before extracting HTML
+                      if (
+                        editorInstance &&
+                        editorInstance.state &&
+                        replyMedia &&
+                        typeof replyMedia.title !== "undefined" &&
+                        replyMedia.src
+                      ) {
+                        const { state, view } = editorInstance;
+                        let tr = state.tr;
+                        let found = false;
+                        state.doc.descendants((node, pos) => {
+                          if (
+                            ["audio", "video", "image", "pdfembed"].includes(node.type.name) &&
+                            node.attrs &&
+                            node.attrs.src === replyMedia.src &&
+                            !found
+                          ) {
+                            tr = tr.setNodeMarkup(pos, undefined, {
+                              ...node.attrs,
+                              title: replyMedia.title
+                            });
+                            found = true;
+                            return false;
+                          }
+                          return true;
+                        });
+                        if (found) {
+                          view.dispatch(tr);
+                          editorInstance.commands.focus('end');
+                        }
+                      }
+                      // Now extract HTML and media title
+                      const html = editorInstance ? editorInstance.getHTML() : replyContent;
+                      let mediaTitleToSend = undefined;
+                      if (html) {
+                        const match = html.match(/<(audio|video|img|embed)[^>]*title="([^"]+)"[^>]*>/i);
+                        if (match && match[2]) {
+                          mediaTitleToSend = match[2];
+                        }
+                      }
+                      if (onReply) onReply(comment.id, html, replyMediaId, mediaTitleToSend);
                       setReplyContent("");
                       setReplyMediaId(null);
                       setReplyMedia(null);
@@ -375,11 +427,13 @@ function renderTextBeforeMedia(html) {
       if (node.nodeType === 1) {
         if (node.tagName === "IMG") {
           const src = node.getAttribute("src");
+          const title = node.getAttribute("title") || "";
           return (
             <MediaPlayer
               key={key}
               src={src}
               type="image"
+              title={title}
               alt=""
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
@@ -387,22 +441,26 @@ function renderTextBeforeMedia(html) {
         }
         if (node.tagName === "VIDEO") {
           const src = node.getAttribute("src");
+          const title = node.getAttribute("title") || "";
           return (
             <MediaPlayer
               key={key}
               src={src}
               type="video"
+              title={title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
         }
         if (node.tagName === "AUDIO") {
           const src = node.getAttribute("src");
+          const title = node.getAttribute("title") || "";
           return (
             <MediaPlayer
               key={key}
               src={src}
               type="audio"
+              title={title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
