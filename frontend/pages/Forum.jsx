@@ -102,7 +102,7 @@ const Forum = () => {
           loadMorePosts();
         }
       },
-      { root: null, rootMargin: "0px", threshold: 1.0 }
+      { root: null, rootMargin: "0px 0px -50% 0px", threshold: 0 }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
@@ -203,7 +203,8 @@ const Forum = () => {
               {/* Infinite scroll sentinel */}
               <div
                 id="load-more-sentinel"
-                style={{ height: 1 }}
+                style={{ height: 300, background: "#f0f4f8" }}
+                /* Debug: Further increased height for better intersection */
               />
               {postsLoading && <div className="text-center py-4 text-gray-500">Loading more posts...</div>}
               {!hasMore && posts.length > 0 && (
