@@ -1,4 +1,5 @@
-import React, { forwardRef, useEffect, useRef, useState } from "react";
+import React, { useRef, useEffect, useState, forwardRef } from "react";
+import { MdPlayArrow, MdPause, MdVolumeUp, MdVolumeOff } from "react-icons/md";
 
 /**
  * AudioPlayer with animated random bar spectrum visualization (fixed size, transparent container).
@@ -6,149 +7,235 @@ import React, { forwardRef, useEffect, useRef, useState } from "react";
  * - Visualization uses a fixed width and height (default 80px tall).
  * - Container background is transparent.
  */
-const AudioPlayer = forwardRef(
-  (
-    {
-      src,
-      controls = true,
-      autoPlay = false,
-      loop = false,
-      muted = false,
-      className = "",
-      style = {},
-      barColor = "#4fc3f7",
-      backgroundColor = "#06232e",
-      height = 80,
-      barCount = 48,
-      onPlay,
-      showNativeControls = true, // NEW: control native audio element rendering
-    },
-    ref
-  ) => {
-    const audioRef = ref || useRef();
-    const canvasRef = useRef();
-    const animationRef = useRef();
-    const [duration, setDuration] = useState(0);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [barHeights, setBarHeights] = useState(
-      Array.from({ length: barCount }, () => Math.random() * height)
-    );
+const AudioPlayer = forwardRef(({
+  src,
+  autoPlay = false,
+  loop = false,
+  muted = false,
+  className = "",
+  style = {},
+  barColor = "#4fc3f7",
+  backgroundColor = "#06232e",
+  height = 80,
+  barCount = 48,
+  thumbnail,
+  title,
+  ...restProps
+}, ref) => {
+  const localAudioRef = useRef();
+  const audioRef = ref || localAudioRef;
+  const canvasRef = useRef();
+  const animationRef = useRef();
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(muted);
+  const [barHeights, setBarHeights] = useState(
+    Array.from({ length: barCount }, () => Math.random() * height)
+  );
 
-    // Animate bar heights while playing
-    useEffect(() => {
-      if (!isPlaying) return;
-      let running = true;
-      function animate() {
-        if (!running) return;
-        setBarHeights(
-          Array.from({ length: barCount }, () => Math.random() * height)
-        );
-        animationRef.current = setTimeout(animate, 80); // ~12.5 FPS
-      }
-      animate();
-      return () => {
-        running = false;
-        if (animationRef.current) clearTimeout(animationRef.current);
-      };
-    }, [isPlaying, barCount, height]);
-
-    // Draw the animated bar spectrum and handle responsive resizing
-    useEffect(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const parent = canvas.parentElement;
-      function draw() {
-        const width = parent ? parent.offsetWidth : 500;
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        const w = canvas.width;
-        const h = canvas.height;
-        const barWidth = w / barCount;
-
-        ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = backgroundColor;
-        ctx.fillRect(0, 0, w, h);
-
-        for (let i = 0; i < barCount; i++) {
-          ctx.fillStyle = barColor;
-          ctx.fillRect(i * barWidth + 2, h - barHeights[i], barWidth - 4, barHeights[i]);
-        }
-      }
-      draw();
-
-      // Responsive: redraw on resize
-      let resizeObserver;
-      if (parent && window.ResizeObserver) {
-        resizeObserver = new window.ResizeObserver(draw);
-        resizeObserver.observe(parent);
-      } else {
-        // fallback: redraw on window resize
-        window.addEventListener("resize", draw);
-      }
-      return () => {
-        if (resizeObserver && parent) resizeObserver.unobserve(parent);
-        else window.removeEventListener("resize", draw);
-      };
-    }, [barHeights, barCount, backgroundColor, barColor, height]);
-
-    // Sync currentTime, duration, and play state
-    useEffect(() => {
-      const audio = audioRef && audioRef.current ? audioRef.current : null;
-      if (!audio) return;
-      const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-      const onLoadedMetadata = () => setDuration(audio.duration || 0);
-      const onPlayHandler = (e) => {
-        setIsPlaying(true);
-        if (onPlay) onPlay(e);
-      };
-      const onPause = () => setIsPlaying(false);
-      audio.addEventListener("timeupdate", onTimeUpdate);
-      audio.addEventListener("loadedmetadata", onLoadedMetadata);
-      audio.addEventListener("play", onPlayHandler);
-      audio.addEventListener("pause", onPause);
-      audio.addEventListener("ended", onPause);
-      return () => {
-        audio.removeEventListener("timeupdate", onTimeUpdate);
-        audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-        audio.removeEventListener("play", onPlayHandler);
-        audio.removeEventListener("pause", onPause);
-        audio.removeEventListener("ended", onPause);
-      };
-    }, [audioRef, src, onPlay]);
-
-    // Regenerate bar heights if height or barCount changes
-    useEffect(() => {
+  // Animate bar heights while playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    let running = true;
+    function animate() {
+      if (!running) return;
       setBarHeights(
         Array.from({ length: barCount }, () => Math.random() * height)
       );
-    }, [height, barCount]);
+      animationRef.current = setTimeout(animate, 80); // ~12.5 FPS
+    }
+    animate();
+    return () => {
+      running = false;
+      if (animationRef.current) clearTimeout(animationRef.current);
+    };
+  }, [isPlaying, barCount, height]);
 
-    // Seek on bar click
-    const handleSeek = (e) => {
-      if (!canvasRef.current || !audioRef.current || !duration) return;
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const percent = x / rect.width;
-      audioRef.current.currentTime = percent * duration;
+  // Draw the animated bar spectrum and handle responsive resizing
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    function draw() {
+      const width = parent ? parent.offsetWidth : 500;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      const barWidth = w / barCount;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, w, h);
+
+      for (let i = 0; i < barCount; i++) {
+        ctx.fillStyle = barColor;
+        ctx.fillRect(i * barWidth + 2, h - barHeights[i], barWidth - 4, barHeights[i]);
+      }
+    }
+    draw();
+
+    // Responsive: redraw on resize
+    let resizeObserver;
+    if (parent && window.ResizeObserver) {
+      resizeObserver = new window.ResizeObserver(draw);
+      resizeObserver.observe(parent);
+    } else {
+      // fallback: redraw on window resize
+      window.addEventListener("resize", draw);
+    }
+    return () => {
+      if (resizeObserver && parent) resizeObserver.unobserve(parent);
+      else window.removeEventListener("resize", draw);
+    };
+  }, [barHeights, barCount, backgroundColor, barColor, height]);
+
+  // Sync currentTime, duration, and play state
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+
+    // Workaround for webm duration bug: seek to end if duration is 0 or Infinity
+    const onLoadedMetadata = () => {
+      let d = audio.duration || 0;
+      if (!isFinite(d) || d === 0) {
+        // Try to force duration calculation
+        const fixDuration = () => {
+          if (isFinite(audio.duration) && audio.duration > 0) {
+            setDuration(audio.duration);
+            audio.currentTime = 0;
+            audio.removeEventListener("timeupdate", fixDuration);
+          }
+        };
+        audio.addEventListener("timeupdate", fixDuration);
+        audio.currentTime = 1e10;
+      } else {
+        setDuration(d);
+      }
     };
 
-    if (!src) return null;
-    return (
-      <div
-        className={className}
-        style={{
-          ...style,
-          background: "transparent",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "stretch",
-          justifyContent: "flex-start",
-          gap: 8,
-          padding: 0,
-        }}
-      >
+    const onPlayHandler = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("play", onPlayHandler);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("ended", onPause);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("play", onPlayHandler);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("ended", onPause);
+    };
+  }, [src]);
+
+  // Autoplay logic for native audio
+  useEffect(() => {
+    if (autoPlay && audioRef.current) {
+      audioRef.current.muted = isMuted;
+      const playPromise = audioRef.current.play();
+      if (playPromise && typeof playPromise.then === "function") {
+        playPromise.catch(() => {});
+      }
+    }
+  }, [autoPlay, isMuted, src]);
+
+  // Regenerate bar heights if height or barCount changes
+  useEffect(() => {
+    setBarHeights(
+      Array.from({ length: barCount }, () => Math.random() * height)
+    );
+  }, [height, barCount]);
+
+  // Seek on bar click
+  const handleSeek = (e) => {
+    if (!canvasRef.current || !audioRef.current || !duration) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = x / rect.width;
+    audioRef.current.currentTime = percent * duration;
+  };
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+  };
+
+  const toggleMute = () => {
+    if (!audioRef.current) return;
+    audioRef.current.muted = !isMuted;
+    setIsMuted(!isMuted);
+  };
+
+  function formatTime(s) {
+    if (!isFinite(s) || s < 0) return "0:00";
+    const m = Math.floor(s / 60);
+    const ss = Math.floor(s % 60);
+    return `${m}:${ss < 10 ? "0" : ""}${ss}`;
+  }
+
+  if (!src) return null;
+  const hasThumbnail = !!(thumbnail && typeof thumbnail === "string" && thumbnail.trim() !== "");
+
+  // Prevent barCount from being passed to <audio>
+  const { barCount: _barCount, ...audioProps } = restProps;
+
+  return (
+    <div
+      className={className}
+      style={{
+        ...style,
+        background: "transparent",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        justifyContent: "flex-start",
+        gap: 0,
+        padding: 0,
+      }}
+      {...restProps}
+    >
+      {hasThumbnail ? (
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#222",
+            borderRadius: style.borderRadius !== undefined ? style.borderRadius : 8,
+            borderTopLeftRadius: style.borderTopLeftRadius !== undefined ? style.borderTopLeftRadius : 8,
+            borderTopRightRadius: style.borderTopRightRadius !== undefined ? style.borderTopRightRadius : 8,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
+            minHeight: 120,
+            padding: 16,
+            marginBottom: 0,
+            paddingBottom: 0,
+          }}
+        >
+          <img
+            src={thumbnail}
+            alt={title || "Audio thumbnail"}
+            style={{
+              maxWidth: "100%",
+              maxHeight: 180,
+              borderRadius: 8,
+              objectFit: "cover",
+              marginBottom: 0,
+            }}
+          />
+        </div>
+      ) : (
         <div
           style={{
             width: "100%",
@@ -172,35 +259,117 @@ const AudioPlayer = forwardRef(
             onClick={handleSeek}
           />
         </div>
-        {showNativeControls && (
-          <audio
-            ref={audioRef}
-            src={src}
-            controls={controls}
-            autoPlay={autoPlay}
-            loop={loop}
-            muted={muted}
+      )}
+      <div
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          background: "#fff",
+          borderRadius: 0,
+          margin: 0,
+          padding: "0 8px",
+          minHeight: 48,
+          maxHeight: 56,
+          boxSizing: "border-box",
+          gap: 8,
+        }}
+      >
+        <audio
+          ref={audioRef}
+          src={src}
+          autoPlay={autoPlay}
+          loop={loop}
+          muted={isMuted}
+          style={{ display: "none" }}
+          {...audioProps}
+        />
+        <button
+          onClick={togglePlay}
+          style={{
+            border: "none",
+            background: "none",
+            padding: 0,
+            margin: 0,
+            width: 32,
+            height: 32,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            outline: "none",
+            color: "#222",
+          }}
+          aria-label={isPlaying ? "Pause" : "Play"}
+          tabIndex={0}
+        >
+          {isPlaying ? (
+            <MdPause size={28} color="#222" />
+          ) : (
+            <MdPlayArrow size={28} color="#222" />
+          )}
+        </button>
+        <span style={{ fontSize: 14, minWidth: 56, color: "#222", fontVariantNumeric: "tabular-nums" }}>
+          {formatTime(currentTime)}
+        </span>
+        <div
+          style={{
+            flex: 1,
+            height: 6,
+            background: "#d1d5db",
+            borderRadius: 3,
+            position: "relative",
+            cursor: "pointer",
+            margin: "0 8px",
+          }}
+          onClick={handleSeek}
+          tabIndex={0}
+          aria-label="Seek"
+        >
+          <div
             style={{
-              width: "100%",
-              margin: 0,
-              padding: 0,
-              borderRadius: 8,
-              background: "#fff",
-              boxSizing: "border-box",
-              outline: "none",
-              border: "none",
-              minHeight: 40,
-              maxHeight: 56,
-              display: "block",
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: 6,
+              width: duration ? `${(currentTime / duration) * 100}%` : "0%",
+              background: "#222",
+              borderRadius: 3,
+              transition: "width 0.1s linear",
             }}
-            {...(src && src.toLowerCase().endsWith(".webm") ? { type: "audio/webm" } : {})}
-          >
-            Your browser does not support the audio element.
-          </audio>
-        )}
+          />
+        </div>
+        <span style={{ fontSize: 14, minWidth: 56, color: "#222", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+          {formatTime(duration)}
+        </span>
+        <button
+          onClick={toggleMute}
+          style={{
+            border: "none",
+            background: "none",
+            padding: 0,
+            margin: 0,
+            width: 32,
+            height: 32,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            outline: "none",
+            color: "#222",
+          }}
+          aria-label={isMuted ? "Unmute" : "Mute"}
+          tabIndex={0}
+        >
+          {isMuted ? (
+            <MdVolumeOff size={22} color="#222" />
+          ) : (
+            <MdVolumeUp size={22} color="#222" />
+          )}
+        </button>
       </div>
-    );
-  }
-);
+    </div>
+  );
+});
 
 export default AudioPlayer;

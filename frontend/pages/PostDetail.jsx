@@ -38,8 +38,21 @@ const PostDetail = () => {
       });
   }, [id]);
 
-  async function handleReply() {
-    if (!reply.trim() && !replyMediaId) return;
+  async function handleReply(editor, selectedMedia, mediaTitleToSend, thumbnailToSend) {
+    // Accepts: editor, selectedMedia, mediaTitleToSend, thumbnailToSend (from TiptapEditor)
+    // Fallback for legacy calls
+    if (arguments.length === 0) return;
+    let replyContent = reply;
+    let replyMediaIdVal = replyMediaId;
+    let replyMediaTypeVal = replyMediaType;
+    if (editor && typeof editor.getHTML === "function") {
+      replyContent = editor.getHTML();
+    }
+    if (selectedMedia && selectedMedia.id) {
+      replyMediaIdVal = selectedMedia.id;
+      replyMediaTypeVal = selectedMedia.type;
+    }
+    if (!replyContent.trim() && !replyMediaIdVal) return;
     if (!user || !user.email) {
       alert("You must be logged in to reply.");
       return;
@@ -59,12 +72,12 @@ const PostDetail = () => {
       alert("User not found.");
       return;
     }
-    // Extract media title from reply HTML
-    let mediaTitleToSend = undefined;
-    if (reply) {
-      const match = reply.match(/<(audio|video|img|embed)[^>]*title="([^"]+)"[^>]*>/i);
+    // Extract media title from reply HTML if not provided
+    let mediaTitle = mediaTitleToSend;
+    if (!mediaTitle && replyContent) {
+      const match = replyContent.match(/<(audio|video|img|embed)[^>]*title="([^"]+)"[^>]*>/i);
       if (match && match[2]) {
-        mediaTitleToSend = match[2];
+        mediaTitle = match[2];
       }
     }
     try {
@@ -73,11 +86,12 @@ const PostDetail = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: userId,
-          content: reply,
+          content: replyContent,
           parent_id: null,
-          media_id: replyMediaId || undefined,
-          media_type: replyMediaType || undefined,
-          media_title: mediaTitleToSend || undefined
+          media_id: replyMediaIdVal || undefined,
+          media_type: replyMediaTypeVal || undefined,
+          media_title: mediaTitle || undefined,
+          thumbnail: thumbnailToSend || undefined
         }),
       });
       if (!res.ok) {
@@ -102,7 +116,7 @@ const PostDetail = () => {
     }
   }
 
-  async function handleCommentReply(parentId, content, mediaId, mediaTitle) {
+  async function handleCommentReply(parentId, content, mediaId, mediaTitle, thumbnail, mediaType) {
     if (!content.trim() && !mediaId) return;
     if (!user || !user.email) {
       alert("You must be logged in to reply.");
@@ -132,11 +146,18 @@ const PostDetail = () => {
           content,
           parent_id: parentId,
           media_id: mediaId || undefined,
-          media_title: mediaTitle || undefined
+          media_title: mediaTitle || undefined,
+          thumbnail: thumbnail || undefined,
+          media_type: mediaType || undefined
         }),
       });
+      let errorText = "";
       if (!res.ok) {
-        alert("Failed to post reply.");
+        try {
+          errorText = await res.text();
+        } catch {}
+        console.error("Reply post failed:", res.status, errorText);
+        alert("Failed to post reply. " + (errorText ? `Server: ${errorText}` : ""));
         return;
       }
       fetch(`/api/posts/${id}/comments`)
@@ -144,7 +165,8 @@ const PostDetail = () => {
         .then(data => {
           if (Array.isArray(data)) setComments(data);
         });
-    } catch {
+    } catch (err) {
+      console.error("Network error in handleCommentReply:", err);
       alert("Network error.");
     }
   }
@@ -152,9 +174,6 @@ const PostDetail = () => {
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (!post) return <div className="p-8 text-center">Post not found.</div>;
 
-  // Debug: log the post content to verify if media HTML is present
-  // eslint-disable-next-line
-  console.log("Post content for debugging:", post.content);
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
@@ -184,6 +203,7 @@ const PostDetail = () => {
             <div className="w-full max-w-lg">
               {isReplyEditorActive ? (
                 <TiptapEditor
+                  key={`reply-editor-${reply === "" ? Date.now() : "active"}`}
                   value={reply}
                   onChange={setReply}
                   onNext={handleReply}

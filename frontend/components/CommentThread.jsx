@@ -150,6 +150,9 @@ const CommentThread = ({
               @{comment.username ? comment.username : comment.author?.toLowerCase().replace(/\s/g, "")}
             </span>
           </div>
+          <div className="text-gray-900 text-base mb-2">
+            <ExcessContentManager content={comment.content} wordLimit={20} />
+          </div>
           {/* Render media if present (robust extraction) */}
           {(() => {
             // Robust extraction: handle media as object, array, or direct fields
@@ -184,6 +187,13 @@ const CommentThread = ({
                     src={mediaPath}
                     type={mediaType}
                     title={comment.media_title || (mediaObj && mediaObj.title) || undefined}
+                    thumbnail={
+                      mediaObj && typeof mediaObj.thumbnail === "string" && mediaObj.thumbnail.trim().length > 0
+                        ? mediaObj.thumbnail
+                        : (typeof comment.thumbnail === "string" && comment.thumbnail.trim().length > 0
+                          ? comment.thumbnail
+                          : undefined)
+                    }
                     style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
                   />
                 </div>
@@ -191,9 +201,6 @@ const CommentThread = ({
             }
             return null;
           })()}
-          <div className="text-gray-900 text-base mb-2">
-            <ExcessContentManager content={comment.content} wordLimit={20} />
-          </div>
           <div className="flex items-center gap-4 text-gray-500 text-xs mt-1">
             <span>{formatRelativeTime(comment.createdAt)}</span>
             <LikeButton
@@ -285,7 +292,7 @@ const CommentThread = ({
                       setReplyMediaId(id);
                       setReplyMedia({ id, type, url, title: title || "" });
                     }}
-                    onNext={(editorInstance, _selectedMedia, _mediaTitleToSend) => {
+                    onNext={(editorInstance, _selectedMedia, _mediaTitleToSend, thumbnail) => {
                       // Ensure latest media title input is written to the editor node before extracting HTML
                       if (
                         editorInstance &&
@@ -331,9 +338,7 @@ const CommentThread = ({
                       if (!mediaTitleToSend && replyMedia && typeof replyMedia.title === "string" && replyMedia.title.trim().length > 0) {
                         mediaTitleToSend = replyMedia.title;
                       }
-                      // Debug: log what is being sent
-                      console.log("Reply submit: commentId", comment.id, "mediaId", replyMediaId, "mediaTitle", mediaTitleToSend, "replyMedia", replyMedia);
-                      if (onReply) onReply(comment.id, html, replyMediaId, mediaTitleToSend);
+                      if (onReply) onReply(comment.id, html, replyMediaId, mediaTitleToSend, thumbnail, replyMedia && replyMedia.type);
                       setReplyContent("");
                       setReplyMediaId(null);
                       setReplyMedia(null);

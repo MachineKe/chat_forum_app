@@ -58,14 +58,15 @@ const Forum = () => {
       setLoading(false);
       return;
     }
-    // Debug: log mediaTitle before sending
-    console.log("handleSubmit: mediaTitle =", mediaTitle);
+    // Debug: log mediaTitle and thumbnail before sending
+    console.log("handleSubmit: mediaTitle =", mediaTitle, "thumbnail =", selectedMedia && selectedMedia.thumbnail);
     // Use mediaTitle from state (set on Next)
     const data = await createPost({
       user_id: userId,
       content,
       media_id: mediaId || undefined,
-      media_title: mediaTitle || ""
+      media_title: mediaTitle || "",
+      thumbnail: selectedMedia && selectedMedia.thumbnail ? selectedMedia.thumbnail : undefined
     });
     if (!data) {
       setError("Failed to create post");
@@ -120,7 +121,7 @@ const Forum = () => {
                 content={content}
                 media={
                   selectedMedia
-                    ? { url: selectedMedia.src, type: selectedMedia.type, title: selectedMedia.title }
+                    ? { url: selectedMedia.src, type: selectedMedia.type, title: selectedMedia.title, thumbnail: selectedMedia.thumbnail }
                     : null
                 }
                 onBack={() => setShowSettings(false)}
@@ -142,9 +143,10 @@ const Forum = () => {
                   onChange={setContent}
                   placeholder="What's happening?"
                   minHeight={80}
-                  onNext={(editor, media, mediaTitleFromContent) => {
+                  onNext={(editor, media, mediaTitleFromContent, thumbnailToSend) => {
                     setContent(editor.getHTML());
-                    setSelectedMedia(media);
+                    // Store thumbnail in selectedMedia for use in handleSubmit
+                    setSelectedMedia(media ? { ...media, thumbnail: thumbnailToSend } : { thumbnail: thumbnailToSend });
                     setMediaTitle(mediaTitleFromContent || "");
                     setShowSettings(true);
                   }}

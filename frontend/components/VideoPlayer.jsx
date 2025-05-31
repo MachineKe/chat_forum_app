@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useRef, useState, useEffect } from "react";
 
 const VideoPlayer = forwardRef(({
   src,
@@ -11,10 +11,12 @@ const VideoPlayer = forwardRef(({
   videoId,
   onClick
 }, ref) => {
+  const videoRef = ref || useRef();
+
   if (!src) return null;
   return (
     <video
-      ref={ref}
+      ref={videoRef}
       src={src}
       poster={poster}
       controls={controls}

@@ -66,6 +66,7 @@ const MediaPlayer = ({
   style = {},
   title,
   media, // NEW: allow passing a media object directly
+  thumbnail, // NEW: thumbnail for audio/video
   ...rest
 }) => {
   // Always use the latest title prop (do not store in state)
@@ -75,6 +76,18 @@ const MediaPlayer = ({
       : media && media.title
       ? media.title
       : undefined;
+
+  // Prefer explicit thumbnail prop, else from media object
+  const mediaThumbnail =
+    typeof thumbnail !== "undefined"
+      ? thumbnail
+      : media && media.thumbnail
+      ? media.thumbnail
+      : undefined;
+
+  // Debug: log thumbnail prop and resolved mediaThumbnail
+  if (typeof window !== "undefined") {
+  }
 
   const mediaType = getMediaType(src, type);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -130,7 +143,7 @@ const MediaPlayer = ({
             <VideoPlayer
               ref={mediaRef}
               src={src}
-              poster={poster}
+              poster={mediaThumbnail || poster}
               controls={controls}
               autoPlay={typeof rest.autoPlay !== "undefined" ? rest.autoPlay : autoPlay}
               loop={loop}
@@ -143,7 +156,7 @@ const MediaPlayer = ({
               {...rest}
             />
           </div>
-          <VideoViewer src={src} open={viewerOpen} onClose={() => setViewerOpen(false)} poster={poster} />
+          <VideoViewer src={src} open={viewerOpen} onClose={() => setViewerOpen(false)} poster={mediaThumbnail || poster} />
         </>
       )}
       {mediaType === "audio" && (
@@ -170,7 +183,7 @@ const MediaPlayer = ({
             controls={controls}
             autoPlay={false}
             loop={loop}
-            muted={true}
+            muted={false}
             className={className}
             style={{
               ...mergedStyle,
@@ -185,7 +198,8 @@ const MediaPlayer = ({
               height: "auto",
             }}
             onPlay={handlePlay}
-            showNativeControls={true}
+            thumbnail={mediaThumbnail}
+            title={mediaTitle}
             {...rest}
           />
         </div>

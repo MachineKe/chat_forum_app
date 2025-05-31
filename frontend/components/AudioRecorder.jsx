@@ -12,6 +12,7 @@ import {
   FiFile,
   FiCircle,
 } from "react-icons/fi";
+import { MdCheckCircle } from "react-icons/md";
 import { BsRecordCircleFill } from "react-icons/bs";
 import { MdStop } from "react-icons/md";
 import MediaPlayer from "./MediaPlayer";
@@ -159,19 +160,6 @@ const AudioRecorder = ({
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-gray-50 rounded-xl shadow">
         <div className="relative mb-6 w-full" style={{ minHeight: 48 }}>
-          {showResult && (
-            <BackButton
-              label="New Recording"
-              onClick={() => {
-                setShowResult(false);
-                setAudioURL(null);
-                setAudioBlob(null);
-                setTimer(0);
-                setWaveformData([]);
-              }}
-              className="absolute left-0 top-1/2 -translate-y-1/2"
-            />
-          )}
           <h2 className="text-3xl font-semibold absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 m-0 p-0">
             Audio Recorder
           </h2>
@@ -259,72 +247,59 @@ const AudioRecorder = ({
         // After recording: playback and actions
         <div>
         
-        <div className="bg-[#06232e] rounded-2xl p-6 pb-10 flex flex-col items-center relative">
-            {/* Optional title input */}
-            <div className="w-full flex flex-col items-center mb-4">
-              <input
-                type="text"
-                className="w-full max-w-md px-4 py-2 rounded border border-gray-300 text-lg mb-2"
-                placeholder="Optional title for this audio"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                maxLength={100}
-              />
-            </div>
-            {/* AI Actions */}
-            <div className="absolute right-6 top-6 flex flex-col gap-2">
-              <button
-                className="bg-black bg-opacity-60 text-white px-4 py-2 rounded flex items-center gap-2"
-                onClick={() => onSummary && onSummary(audioBlob)}
-              >
-                <FiFile className="text-lg" />
-                AI Summary
-              </button>
-              <button
-                className="bg-black bg-opacity-60 text-white px-4 py-2 rounded flex items-center gap-2"
-                onClick={() => onTranscribe && onTranscribe(audioBlob)}
-              >
-                <FiFileText className="text-lg" />
-                AI to Text
-              </button>
-            </div>
-            {/* Audio playback inside container */}
+        <div
+          className="flex-1 bg-[#06232e] rounded-2xl flex flex-col items-center justify-center p-6 min-h-[220px] relative"
+          style={{ width: "100%", maxWidth: 600, margin: "0 auto" }}
+        >
+          {/* AI Actions */}
+          <div className="absolute right-6 top-6 flex flex-col gap-2">
+            <button
+              className="bg-black bg-opacity-60 text-white px-4 py-2 rounded flex items-center gap-2"
+              onClick={() => onSummary && onSummary(audioBlob)}
+            >
+              <FiFile className="text-lg" />
+              AI Summary
+            </button>
+            <button
+              className="bg-black bg-opacity-60 text-white px-4 py-2 rounded flex items-center gap-2"
+              onClick={() => onTranscribe && onTranscribe(audioBlob)}
+            >
+              <FiFileText className="text-lg" />
+              AI to Text
+            </button>
+          </div>
+          {/* Audio playback inside container */}
+          <div className="w-full flex flex-col items-center justify-center" style={{ minHeight: 180 }}>
             <MediaPlayer
               src={audioURL}
               type="audio"
               controls
-              className="w-full mt-12"
+              className="w-full"
+              style={{ width: "100%", maxWidth: 480, borderRadius: 16 }}
             />
           </div>
+        </div>
           {/* Actions */}
-          <div className="flex justify-center gap-12 mt-6">
+          <div className="flex justify-center gap-6 mt-6">
             <button
-              className="flex flex-col items-center text-green-600 hover:underline font-bold"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold"
               onClick={() => onSelect && onSelect({ blob: audioBlob, title })}
             >
-              <FiCircle className="text-2xl" />
-              <span>Use this recording</span>
+              <MdCheckCircle className="text-xl" />
+              Use this recording
             </button>
             <button
-              className="flex flex-col items-center text-blue-500 hover:underline"
-              onClick={() => onShare && onShare(audioBlob)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 font-semibold"
+              onClick={() => {
+                setShowResult(false);
+                setAudioURL(null);
+                setAudioBlob(null);
+                setTimer(0);
+                setWaveformData([]);
+              }}
             >
-              <FiShare2 className="text-2xl" />
-              <span>Share</span>
-            </button>
-            <button
-              className="flex flex-col items-center text-blue-500 hover:underline"
-              onClick={() => onSave && onSave(audioBlob)}
-            >
-              <FiSave className="text-2xl" />
-              <span>Save</span>
-            </button>
-            <button
-              className="flex flex-col items-center text-blue-500 hover:underline"
-              onClick={() => onUpload && onUpload(audioBlob)}
-            >
-              <FiUpload className="text-2xl" />
-              <span>Upload</span>
+              <FiMic className="text-xl" />
+              New recording
             </button>
           </div>
         </div>

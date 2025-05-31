@@ -52,7 +52,8 @@ const getCommentsForPost = async (req, res) => {
       parent_id: comment.parent_id,
       media_id: comment.media_id,
       media_type: comment.media_type,
-      media_path: comment.media_path
+      media_path: comment.media_path,
+      thumbnail: comment.thumbnail // <-- include comment's own thumbnail
     }));
     return res.json(formatted);
   } catch (err) {

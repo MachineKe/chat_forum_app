@@ -195,6 +195,7 @@ const PostSettingsCard = ({ content, media, onBack, onPost, loading, user = { na
               src={previewMedia.url}
               type={previewMedia.type}
               title={previewMedia.title}
+              thumbnail={previewMedia.thumbnail}
               alt=""
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />

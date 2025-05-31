@@ -25,6 +25,8 @@ const ImageProcessor = ({
   viewType,
   ...props
 }) => {
+  // Remove barCount from being passed to DOM
+  const { barCount, ...safeProps } = props;
   // Determine aspect ratio
   const ratio =
     aspectRatio ||
@@ -40,7 +42,7 @@ const ImageProcessor = ({
           paddingBottom: `${100 / ratio}%`,
           ...style,
         }}
-        {...props}
+        {...safeProps}
       >
         <img
           src={src}
@@ -59,7 +61,7 @@ const ImageProcessor = ({
       alt={alt}
       className={`w-full h-full object-cover ${className}`}
       style={{ objectFit: "cover", ...style }}
-      {...props}
+      {...safeProps}
     />
   );
 };

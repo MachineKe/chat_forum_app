@@ -40,6 +40,7 @@ const PostCard = ({
   media_type: propMediaType,
   media_path: propMediaPath,
   media_title, // <-- add this line
+  thumbnail: propThumbnail, // <-- add this line
   user // new: profile user object for fallbacks
 }) => {
   const navigate = useNavigate();
@@ -101,6 +102,7 @@ const PostCard = ({
   const media_path =
     propMediaPath ||
     (media && (media.media_path || media.mediaPath || media.path || media.url));
+  const thumbnail = propThumbnail || (media && media.thumbnail);
 
   useEffect(() => {
     // Fetch like count and liked status
@@ -374,6 +376,7 @@ const PostCard = ({
                 src={src}
                 type={type}
                 title={title}
+                thumbnail={thumbnail}
                 style={{
                   maxWidth: "100%",
                   minHeight: type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined,
@@ -671,6 +674,7 @@ function renderTextBeforeMedia(content, media_title, media_type, suppressAudio) 
               src={src}
               type="audio"
               title={media_title}
+              thumbnail={media && media.thumbnail ? media.thumbnail : undefined}
               style={{
                 maxWidth: "100%",
                 borderRadius: 8,

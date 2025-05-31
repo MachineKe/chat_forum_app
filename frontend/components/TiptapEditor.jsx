@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { MdOutlineAddPhotoAlternate } from "react-icons/md";
 import Avatar from "./Avatar";
 import Card from "./Card";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -136,6 +137,8 @@ const TiptapEditor = ({
   onMediaUpload, // NEW PROP
   mediaPreview, // NEW PROP: React node to render as media preview
 }) => {
+  // State for selected thumbnail
+  const [selectedThumbnail, setSelectedThumbnail] = useState(null);
   // Local state for media title input
   const [mediaTitleInput, setMediaTitleInput] = useState("");
   // Initialize editor FIRST before any hook or logic that uses it
@@ -374,6 +377,56 @@ const TiptapEditor = ({
     // eslint-disable-next-line
   }, [value, editor]);
 
+  // Reset local states when value is cleared (after successful submit)
+  useEffect(() => {
+    if ((value === "" || value === null) && editor) {
+      setSelectedMedia(null);
+      setSelectedThumbnail(null);
+      setMediaTitleInput("");
+      setMediaTitle("");
+    }
+  }, [value, editor]);
+
+  // Also clear selectedMedia if editor content is empty (no text and no media)
+  useEffect(() => {
+    if (!editor) return;
+    const html = editor.getHTML();
+    const isEmpty = !editor.getText().trim() && !hasMedia(html);
+    if (isEmpty) {
+      setSelectedMedia(null);
+      setSelectedThumbnail(null);
+      setMediaTitleInput("");
+      setMediaTitle("");
+    }
+  }, [editor && editor.getHTML()]);
+
+  // NEW: Sync selectedMedia with editor content if media node is present but selectedMedia is null
+  useEffect(() => {
+    if (!editor) return;
+    const html = editor.getHTML();
+    if (!selectedMedia && hasMedia(html)) {
+      // Parse the first media node from the HTML and set selectedMedia
+      const parser = new window.DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      const node = Array.from(doc.body.childNodes).find(
+        n =>
+          n.nodeType === 1 &&
+          ["IMG", "VIDEO", "AUDIO", "EMBED"].includes(n.tagName)
+      );
+      if (node) {
+        let type = node.tagName.toLowerCase();
+        if (type === "img") type = "image";
+        if (type === "embed") type = "pdf";
+        setSelectedMedia({
+          src: node.getAttribute("src"),
+          type,
+          title: node.getAttribute("title") || "",
+          thumbnail: node.getAttribute("thumbnail") || undefined,
+        });
+      }
+    }
+  }, [editor, selectedMedia]);
+
   // Handle file input (image/video)
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -392,6 +445,10 @@ const TiptapEditor = ({
           formData.append("media", file);
           if (mediaTitle) formData.append("title", mediaTitle);
         }
+        // Attach thumbnail if present
+        if (selectedThumbnail) {
+          formData.append("thumbnail", selectedThumbnail);
+        }
         fetch("/api/posts/upload-media", {
           method: "POST",
           body: formData,
@@ -401,7 +458,8 @@ const TiptapEditor = ({
             if (data.url) {
               editor.commands.focus('end');
               editor.chain().insertContent(`<img src="${data.url}" />`).focus('end').run();
-              setSelectedMedia({ src: data.url, type: "image" });
+              setSelectedMedia({ src: data.url, type: "image", thumbnail: data.thumbnail });
+              setSelectedThumbnail(null);
               if (data.id && typeof onMediaUpload === "function") {
                 onMediaUpload(data.id, "image");
               }
@@ -423,32 +481,37 @@ const TiptapEditor = ({
         if (file.name && file.name.toLowerCase().endsWith(".webm")) {
           formData.append("media_type", "video/webm");
         }
-    fetch("/api/posts/upload-media", {
-      method: "POST",
-      body: formData,
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Camera video upload response:", data);
-        if (data.url) {
-          editor.commands.focus('end');
-          editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
-          setSelectedMedia({ src: data.url, type: "video" });
-          if (data.id && typeof onMediaUpload === "function") {
-            onMediaUpload(data.id, "video");
-          }
-        } else {
-          alert("Video upload failed: " + (data.error || "No URL returned"));
-          console.error("Video upload failed:", data);
+        // Attach thumbnail if present
+        if (selectedThumbnail) {
+          formData.append("thumbnail", selectedThumbnail);
         }
-      })
-      .catch((err) => {
-        alert("Video upload failed.");
-        console.error("Video upload error:", err);
-      });
+        fetch("/api/posts/upload-media", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.url) {
+              editor.commands.focus('end');
+              editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
+              setSelectedMedia({ src: data.url, type: "video", thumbnail: data.thumbnail });
+              setSelectedThumbnail(null);
+              if (data.id && typeof onMediaUpload === "function") {
+                onMediaUpload(data.id, "video");
+              }
+            } else {
+              alert("Video upload failed: " + (data.error || "No URL returned"));
+              console.error("Video upload failed:", data);
+            }
+          })
+          .catch((err) => {
+            alert("Video upload failed.");
+            console.error("Video upload error:", err);
+          });
       }
       setMediaModalOpen(false);
       setShowCamera(false);
+      setSelectedThumbnail(null);
     };
     reader.readAsDataURL(file);
     // Reset input so same file can be selected again
@@ -500,9 +563,7 @@ const TiptapEditor = ({
       setShowCamera(false);
       return;
     }
-    console.log("Camera video blob:", videoBlob, "size:", videoBlob.size, "type:", videoBlob.type);
     const file = new File([videoBlob], "captured-video.webm", { type: "video/webm" });
-    console.log("Camera video file:", file, "size:", file.size, "type:", file.type);
     const formData = new FormData();
     formData.append("media", file);
     if (mediaTitle) formData.append("title", mediaTitle);
@@ -619,8 +680,8 @@ const TiptapEditor = ({
             </div>
           )}
         </div>
-        {/* Media title input below editor content but above media preview */}
-        {selectedMedia && (
+        {/* Media title input and thumbnail input below editor content but above media preview */}
+        {selectedMedia ? (
           <div className="mb-2">
             <input
               type="text"
@@ -669,11 +730,84 @@ const TiptapEditor = ({
                 }
               }}
             />
+            {/* Thumbnail input after media title input, only for audio/video */}
+            {(selectedMedia?.type === "audio" || selectedMedia?.type === "video") && (
+              <>
+                <div className="mt-4">
+                  <div className="font-semibold text-base text-gray-800 mb-1">Thumbnail</div>
+                  <div className="text-sm text-gray-500 mb-2">Set a thumbnail that stands out</div>
+                  <label
+                    className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:border-blue-400 transition-all"
+                    style={{ minHeight: 120 }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async e => {
+                        const file = e.target.files[0];
+                        setSelectedThumbnail(file || null);
+                        if (file && selectedMedia) {
+                          // Upload thumbnail to backend and associate with media
+                          const formData = new FormData();
+                          formData.append("thumbnail", file);
+                          formData.append("media_url", selectedMedia.src);
+                          const res = await fetch("/api/posts/upload-thumbnail", {
+                            method: "POST",
+                            body: formData,
+                          });
+                          const data = await res.json();
+                          if (data && data.thumbnail) {
+                            setSelectedMedia({ ...selectedMedia, thumbnail: data.thumbnail });
+                            setSelectedThumbnail(null);
+                          } else {
+                            alert("Failed to upload thumbnail.");
+                          }
+                        }
+                      }}
+                    />
+                    {!selectedThumbnail ? (
+                      <div className="flex flex-col items-center">
+                        <span className="text-4xl text-gray-400 mb-2">
+                          {/* React icon for image upload */}
+                          <MdOutlineAddPhotoAlternate />
+                        </span>
+                        <span className="text-gray-700 font-medium">Upload file</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <img
+                          src={URL.createObjectURL(selectedThumbnail)}
+                          alt="Thumbnail preview"
+                          style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 8, marginBottom: 8 }}
+                        />
+                        <span className="text-xs text-gray-600 mb-2">{selectedThumbnail.name}</span>
+                        <button
+                          className="text-red-500 hover:text-red-700 text-xs border border-red-200 rounded px-2 py-1"
+                          onClick={e => {
+                            e.preventDefault();
+                            setSelectedThumbnail(null);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </>
+            )}
           </div>
-        )}
+        ) : null}
         {/* MediaPlayer-based preview for all media in the editor */}
         <div className="my-4">
-          {renderMediaPreviewOnly(editor?.getHTML?.() || "", undefined)}
+          {renderMediaPreviewOnly(
+            editor?.getHTML?.() || "",
+            undefined,
+            selectedThumbnail
+              ? { ...selectedMedia, thumbnail: URL.createObjectURL(selectedThumbnail) }
+              : selectedMedia
+          )}
         </div>
         {/* "Tip" and emoji row */}
         <div className="flex items-center gap-2 mt-2 mb-2">
@@ -778,6 +912,35 @@ const TiptapEditor = ({
                 className="hidden"
                 onChange={handleFileChange}
               />
+              {/* Thumbnail input */}
+              <label className="block mt-2 text-sm font-medium text-gray-700">
+                Add Thumbnail (optional)
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="block w-full mt-1"
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    setSelectedThumbnail(file || null);
+                  }}
+                />
+              </label>
+              {selectedThumbnail && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img
+                    src={URL.createObjectURL(selectedThumbnail)}
+                    alt="Thumbnail preview"
+                    style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 4 }}
+                  />
+                  <span className="text-xs text-gray-600">{selectedThumbnail.name}</span>
+                  <button
+                    className="ml-2 text-red-500 hover:text-red-700 text-xs"
+                    onClick={() => setSelectedThumbnail(null)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -787,12 +950,6 @@ const TiptapEditor = ({
               onRecord={handleCameraRecord}
               onClose={() => setShowCamera(false)}
             />
-            <button
-              className="mt-4 w-full py-2 px-4 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-              onClick={() => setShowCamera(false)}
-            >
-              Back
-            </button>
           </div>
         )}
       </Modal>
@@ -834,12 +991,6 @@ const TiptapEditor = ({
           <AudioRecorder
             onSelect={handleAudioRecordingSelect}
           />
-          <button
-            className="mt-4 w-full py-2 px-4 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-            onClick={() => setAudioRecorderModalOpen(false)}
-          >
-            Back
-          </button>
         </div>
       </Modal>
 
@@ -891,7 +1042,15 @@ const TiptapEditor = ({
                   }
                 }
               }
-              onNext(editor, selectedMedia, mediaTitleToSend);
+              // Always pass the selected thumbnail if present
+              let thumbnailToSend = undefined;
+              // Only use backend URL for thumbnail, never blob URL
+              if (selectedMedia && selectedMedia.thumbnail && !selectedMedia.thumbnail.startsWith("blob:")) {
+                thumbnailToSend = selectedMedia.thumbnail;
+              } else {
+                thumbnailToSend = undefined;
+              }
+              onNext(editor, selectedMedia, mediaTitleToSend, thumbnailToSend);
               // Do NOT clear the editor here; let the parent clear after successful post
             }
           }}
@@ -912,7 +1071,7 @@ function hasMedia(html) {
   return /<(img|video|audio|embed)\b/i.test(html);
 }
 
-function renderMediaPreviewOnly(html, overrideTitle) {
+function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
   try {
     if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
       return <span dangerouslySetInnerHTML={{ __html: html }} />;
@@ -931,6 +1090,11 @@ function renderMediaPreviewOnly(html, overrideTitle) {
     // Helper to convert DOM node to React element
     function domToReact(node, key) {
       if (node.nodeType === 1) {
+        // Extract thumbnail from node attribute if present, else fallback to selectedMedia.thumbnail
+        let thumbnail = node.getAttribute && node.getAttribute("thumbnail");
+        if (!thumbnail && selectedMedia && selectedMedia.thumbnail) {
+          thumbnail = selectedMedia.thumbnail;
+        }
         if (node.tagName === "IMG") {
           const src = node.getAttribute("src");
           const title = overrideTitle !== undefined ? overrideTitle : (node.getAttribute("title") || "");
@@ -941,6 +1105,7 @@ function renderMediaPreviewOnly(html, overrideTitle) {
               type="image"
               title={title}
               alt=""
+              thumbnail={thumbnail}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
@@ -956,6 +1121,7 @@ function renderMediaPreviewOnly(html, overrideTitle) {
               title={title}
               autoPlay={true}
               muted={false}
+              thumbnail={thumbnail}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
@@ -969,6 +1135,7 @@ function renderMediaPreviewOnly(html, overrideTitle) {
               src={src}
               type="audio"
               title={title}
+              thumbnail={thumbnail}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
@@ -983,6 +1150,7 @@ function renderMediaPreviewOnly(html, overrideTitle) {
               src={src}
               type={type === "application/pdf" ? "pdf" : "document"}
               title={title}
+              thumbnail={thumbnail}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
