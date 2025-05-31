@@ -65,12 +65,29 @@ const MediaPlayer = ({
   // Use mediaTitle in a custom title pane and above the media
   const TitlePane = () =>
     mediaTitle ? (
-      <div className="text-base font-semibold text-gray-800 mb-2" data-testid="media-title-pane">
-        {mediaType && mediaTitle
-          ? `${mediaType.charAt(0).toUpperCase() + mediaType.slice(1)} title: ${mediaTitle}`
-          : mediaTitle}
+      <div
+        className="w-full flex items-center px-4 py-2 bg-gray-800"
+        style={{
+          color: "#fff",
+          fontSize: "1rem",
+          fontWeight: 400,
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          minHeight: 36,
+          marginBottom: 0,
+          paddingBottom: 0,
+          lineHeight: 1.2,
+        }}
+        data-testid="media-title-pane"
+      >
+        <span style={{ fontWeight: 400 }}>{mediaTitle}</span>
       </div>
     ) : null;
+
+  // Compose style with sharp top corners if mediaTitle is present
+  const mergedStyle = mediaTitle
+    ? { ...style, borderTopLeftRadius: 0, borderTopRightRadius: 0 }
+    : style;
 
   return (
     <div>
@@ -79,7 +96,15 @@ const MediaPlayer = ({
         <>
           <div
             ref={containerRef}
-            style={{ width: "100%", aspectRatio: "16/9", background: "#000", borderRadius: 8, overflow: "hidden", position: "relative" }}
+            style={{
+              width: "100%",
+              aspectRatio: "16/9",
+              background: "#000",
+              borderRadius: 8,
+              overflow: "hidden",
+              position: "relative",
+              ...(mediaTitle ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 } : {})
+            }}
           >
             <VideoPlayer
               ref={mediaRef}
@@ -90,7 +115,7 @@ const MediaPlayer = ({
               loop={loop}
               muted={true}
               className={className}
-              style={{ ...style, width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
+              style={{ ...mergedStyle, width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
               videoId={idRef.current}
               onClick={() => setViewerOpen(true)}
               onPlay={handlePlay}
@@ -101,7 +126,7 @@ const MediaPlayer = ({
         </>
       )}
       {mediaType === "audio" && (
-        <div ref={containerRef}>
+        <div ref={containerRef} style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}>
           <AudioPlayer
             ref={mediaRef}
             src={src}
@@ -110,7 +135,15 @@ const MediaPlayer = ({
             loop={loop}
             muted={true}
             className={className}
-            style={style}
+            style={{
+              ...mergedStyle,
+              marginTop: 0,
+              paddingTop: 0,
+              borderTop: "none",
+              borderRadius: 8,
+              borderTopLeftRadius: mediaTitle ? 0 : 8,
+              borderTopRightRadius: mediaTitle ? 0 : 8,
+            }}
             onPlay={handlePlay}
             {...rest}
           />
@@ -122,7 +155,7 @@ const MediaPlayer = ({
             src={src}
             alt={alt}
             className={className}
-            style={{ ...style, cursor: "pointer" }}
+            style={{ ...mergedStyle, cursor: "pointer" }}
             onClick={() => setViewerOpen(true)}
             {...rest}
           />
@@ -134,7 +167,7 @@ const MediaPlayer = ({
           src={src}
           type="application/pdf"
           className={className}
-          style={style}
+          style={mergedStyle}
           {...rest}
         />
       )}

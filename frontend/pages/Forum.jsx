@@ -70,12 +70,22 @@ const Forum = () => {
       setLoading(false);
       return;
     }
+    // Patch the new post to ensure media_title is set for PostCard
+    if (!data.media_title || data.media_title === "") {
+      data.media_title = mediaTitle || "";
+    }
     setContent("");
     setMediaId(null);
     setMediaType(null);
     setShowSettings(false);
     setIsEditorActive(false);
     setSelectedMedia(null);
+    // Refetch posts to ensure latest data from backend (including media_title)
+    fetch("/api/posts")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setPosts(data);
+      });
     setLoading(false);
   };
 
@@ -91,7 +101,7 @@ const Forum = () => {
                 content={content}
                 media={
                   selectedMedia
-                    ? { url: selectedMedia.src, type: selectedMedia.type }
+                    ? { url: selectedMedia.src, type: selectedMedia.type, title: selectedMedia.title }
                     : null
                 }
                 onBack={() => setShowSettings(false)}
@@ -113,8 +123,8 @@ const Forum = () => {
                   onChange={setContent}
                   placeholder="What's happening?"
                   minHeight={80}
-                  onNext={(media, mediaTitleFromContent) => {
-                    setContent(editorContent => editorContent); // no-op, but ensures state is not reset
+                  onNext={(editor, media, mediaTitleFromContent) => {
+                    setContent(editor.getHTML());
                     setSelectedMedia(media);
                     setMediaTitle(mediaTitleFromContent || "");
                     setShowSettings(true);

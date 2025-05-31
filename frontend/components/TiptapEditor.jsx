@@ -781,14 +781,6 @@ const TiptapEditor = ({
         <div>
           <h3 className="text-lg font-semibold mb-4">Attach File or Record Audio</h3>
           <div className="flex flex-col gap-4">
-            <input
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Optional: Enter media title"
-              value={mediaTitle}
-              onChange={e => setMediaTitle(e.target.value)}
-              style={{ marginBottom: 8 }}
-            />
             <button
               className="w-full py-2 px-4 bg-purple-600 text-white rounded hover:bg-purple-700"
               onClick={() => {
@@ -840,8 +832,8 @@ const TiptapEditor = ({
           }`}
           disabled={!(editor.getText().trim() || hasMedia(editor.getHTML()))}
           onClick={() => {
-            // Before posting, ensure the latest mediaTitleInput is written to the editor node
-            if (selectedMedia && mediaTitleInput !== undefined && editor && selectedMedia.src) {
+            // Always update the media node's title with the latest input before posting
+            if (selectedMedia && typeof mediaTitleInput !== "undefined" && editor && selectedMedia.src) {
               const { state, view } = editor;
               let tr = state.tr;
               let found = false;
@@ -866,9 +858,9 @@ const TiptapEditor = ({
                 editor.commands.focus('end');
               }
             }
+            // After updating, get the latest HTML and extract the media title
             if ((editor.getText().trim() || hasMedia(editor.getHTML())) && typeof onNext === "function") {
-              // Prefer the current mediaTitle input if set, else extract from HTML
-              let mediaTitleToSend = mediaTitle && mediaTitle.trim() ? mediaTitle.trim() : undefined;
+              let mediaTitleToSend = mediaTitleInput && mediaTitleInput.trim() ? mediaTitleInput.trim() : undefined;
               if (!mediaTitleToSend) {
                 const html = editor.getHTML();
                 if (html) {
@@ -878,7 +870,6 @@ const TiptapEditor = ({
                   }
                 }
               }
-              // Pass the editor instance to onNext for both post and comment flows
               onNext(editor, selectedMedia, mediaTitleToSend);
               // Do NOT clear the editor here; let the parent clear after successful post
             }

@@ -379,6 +379,8 @@ const PostCard = ({
                   minHeight: mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined,
                   height: mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined,
                   borderRadius: 8,
+                  borderTopLeftRadius: media_title ? 0 : 8,
+                  borderTopRightRadius: media_title ? 0 : 8,
                   margin: mediaType === "audio" ? "0 0 8px 0" : "8px 0"
                 }}
                 height={mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined}

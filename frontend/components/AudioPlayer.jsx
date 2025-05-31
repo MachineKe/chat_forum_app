@@ -127,7 +127,9 @@ const AudioPlayer = forwardRef(
               height,
               display: "block",
               background: backgroundColor,
-              borderRadius: 8,
+              borderRadius: style.borderRadius !== undefined ? style.borderRadius : 8,
+              borderTopLeftRadius: style.borderTopLeftRadius !== undefined ? style.borderTopLeftRadius : 8,
+              borderTopRightRadius: style.borderTopRightRadius !== undefined ? style.borderTopRightRadius : 8,
             }}
             onClick={handleSeek}
           />
