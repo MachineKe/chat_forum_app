@@ -21,6 +21,7 @@ const AudioPlayer = forwardRef(
       height = 80,
       barCount = 48,
       onPlay,
+      showNativeControls = true, // NEW: control native audio element rendering
     },
     ref
   ) => {
@@ -52,25 +53,44 @@ const AudioPlayer = forwardRef(
       };
     }, [isPlaying, barCount, height]);
 
-    // Draw the animated bar spectrum
+    // Draw the animated bar spectrum and handle responsive resizing
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      canvas.width = 500;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      const w = canvas.width;
-      const h = canvas.height;
-      const barWidth = w / barCount;
+      const parent = canvas.parentElement;
+      function draw() {
+        const width = parent ? parent.offsetWidth : 500;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        const w = canvas.width;
+        const h = canvas.height;
+        const barWidth = w / barCount;
 
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = backgroundColor;
-      ctx.fillRect(0, 0, w, h);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, w, h);
 
-      for (let i = 0; i < barCount; i++) {
-        ctx.fillStyle = barColor;
-        ctx.fillRect(i * barWidth + 2, h - barHeights[i], barWidth - 4, barHeights[i]);
+        for (let i = 0; i < barCount; i++) {
+          ctx.fillStyle = barColor;
+          ctx.fillRect(i * barWidth + 2, h - barHeights[i], barWidth - 4, barHeights[i]);
+        }
       }
+      draw();
+
+      // Responsive: redraw on resize
+      let resizeObserver;
+      if (parent && window.ResizeObserver) {
+        resizeObserver = new window.ResizeObserver(draw);
+        resizeObserver.observe(parent);
+      } else {
+        // fallback: redraw on window resize
+        window.addEventListener("resize", draw);
+      }
+      return () => {
+        if (resizeObserver && parent) resizeObserver.unobserve(parent);
+        else window.removeEventListener("resize", draw);
+      };
     }, [barHeights, barCount, backgroundColor, barColor, height]);
 
     // Sync currentTime, duration, and play state
@@ -116,12 +136,30 @@ const AudioPlayer = forwardRef(
 
     if (!src) return null;
     return (
-      <div className={className} style={{ ...style, background: "transparent" }}>
-        <div style={{ width: "100%", cursor: duration ? "pointer" : "default" }}>
+      <div
+        className={className}
+        style={{
+          ...style,
+          background: "transparent",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          justifyContent: "flex-start",
+          gap: 8,
+          padding: 0,
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            cursor: duration ? "pointer" : "default",
+            marginBottom: 0,
+            paddingBottom: 0,
+          }}
+        >
           <canvas
             ref={canvasRef}
-            width={500}
-            height={height}
+            // width and height set dynamically in useEffect for responsiveness
             style={{
               width: "100%",
               height,
@@ -134,18 +172,32 @@ const AudioPlayer = forwardRef(
             onClick={handleSeek}
           />
         </div>
-        <audio
-          ref={audioRef}
-          src={src}
-          controls={controls}
-          autoPlay={autoPlay}
-          loop={loop}
-          muted={muted}
-          style={{ width: "100%", marginTop: height <= 120 ? 8 : 40 }}
-          {...(src && src.toLowerCase().endsWith(".webm") ? { type: "audio/webm" } : {})}
-        >
-          Your browser does not support the audio element.
-        </audio>
+        {showNativeControls && (
+          <audio
+            ref={audioRef}
+            src={src}
+            controls={controls}
+            autoPlay={autoPlay}
+            loop={loop}
+            muted={muted}
+            style={{
+              width: "100%",
+              margin: 0,
+              padding: 0,
+              borderRadius: 8,
+              background: "#fff",
+              boxSizing: "border-box",
+              outline: "none",
+              border: "none",
+              minHeight: 40,
+              maxHeight: 56,
+              display: "block",
+            }}
+            {...(src && src.toLowerCase().endsWith(".webm") ? { type: "audio/webm" } : {})}
+          >
+            Your browser does not support the audio element.
+          </audio>
+        )}
       </div>
     );
   }

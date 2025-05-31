@@ -37,6 +37,8 @@ const Forum = () => {
     error: postsError,
     createPost,
     setPosts,
+    loadMorePosts,
+    hasMore,
   } = usePosts();
 
   const [error, setError] = useState("");
@@ -88,6 +90,23 @@ const Forum = () => {
       });
     setLoading(false);
   };
+
+  // Infinite scroll: observe sentinel
+  React.useEffect(() => {
+    const sentinel = document.getElementById("load-more-sentinel");
+    if (!sentinel) return;
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !postsLoading) {
+          loadMorePosts();
+        }
+      },
+      { root: null, rootMargin: "0px", threshold: 1.0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+    // eslint-disable-next-line
+  }, [hasMore, postsLoading, posts.length]);
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
@@ -179,6 +198,15 @@ const Forum = () => {
                   }}
                 />
               ))}
+              {/* Infinite scroll sentinel */}
+              <div
+                id="load-more-sentinel"
+                style={{ height: 1 }}
+              />
+              {postsLoading && <div className="text-center py-4 text-gray-500">Loading more posts...</div>}
+              {!hasMore && posts.length > 0 && (
+                <div className="text-center py-4 text-gray-400">No more posts</div>
+              )}
             </div>
           </div>
         </div>

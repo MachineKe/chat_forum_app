@@ -14,19 +14,40 @@ function getUniqueMediaPlayerId() {
 }
 
 function getMediaType(src, type) {
-  // Always use the provided type prop if present
+  // Force audio if path is in /uploads/audio/
+  if (src && typeof src === "string" && src.startsWith("/uploads/audio/")) {
+    return "audio";
+  }
+  // Force video if path is in /uploads/videos/
+  if (src && typeof src === "string" && src.startsWith("/uploads/videos/")) {
+    return "video";
+  }
+  // Special case: .webm can be video or audio, use type to decide
+  if (src && typeof src === "string" && src.toLowerCase().endsWith(".webm")) {
+    if (type && typeof type === "string") {
+      const t = type.toLowerCase();
+      if (t === "audio" || t.startsWith("audio/")) return "audio";
+      // If type is not audio, always treat as video
+      return "video";
+    }
+    // fallback: treat as video if no type
+    return "video";
+  }
+  // Use the provided type prop as the single source of truth if present
   if (type && typeof type === "string") {
     const t = type.toLowerCase();
-    if (t === "audio" || t.startsWith("audio/")) return "audio";
+    // Map common MIME types to base types
     if (t === "video" || t.startsWith("video/")) return "video";
+    if (t === "audio" || t.startsWith("audio/")) return "audio";
     if (t === "image" || t.startsWith("image/")) return "image";
     if (t === "pdf" || t === "document" || t === "application/pdf") return "document";
+    // If type is not recognized, treat as unknown
+    return "unknown";
   }
   // fallback for legacy/unknown types
   if (!src) return "unknown";
   const ext = src.split(".").pop().toLowerCase();
   if (["mp4", "mov"].includes(ext)) return "video";
-  if (["webm"].includes(ext)) return "audio"; // treat .webm as audio by default for this app
   if (["mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(ext)) return "audio";
   if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)) return "image";
   if (["pdf"].includes(ext)) return "document";
@@ -111,9 +132,9 @@ const MediaPlayer = ({
               src={src}
               poster={poster}
               controls={controls}
-              autoPlay={false}
+              autoPlay={typeof rest.autoPlay !== "undefined" ? rest.autoPlay : autoPlay}
               loop={loop}
-              muted={true}
+              muted={typeof rest.muted !== "undefined" ? rest.muted : false}
               className={className}
               style={{ ...mergedStyle, width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
               videoId={idRef.current}
@@ -126,7 +147,23 @@ const MediaPlayer = ({
         </>
       )}
       {mediaType === "audio" && (
-        <div ref={containerRef} style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}>
+        <div
+          ref={containerRef}
+          style={{
+            width: "100%",
+            marginTop: 0,
+            paddingTop: 0,
+            borderTop: "none",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+            justifyContent: "flex-start",
+            gap: 0,
+            background: "transparent",
+            minHeight: "unset",
+            height: "auto",
+          }}
+        >
           <AudioPlayer
             ref={mediaRef}
             src={src}
@@ -137,14 +174,18 @@ const MediaPlayer = ({
             className={className}
             style={{
               ...mergedStyle,
+              width: "100%",
               marginTop: 0,
               paddingTop: 0,
               borderTop: "none",
               borderRadius: 8,
               borderTopLeftRadius: mediaTitle ? 0 : 8,
               borderTopRightRadius: mediaTitle ? 0 : 8,
+              minHeight: 0,
+              height: "auto",
             }}
             onPlay={handlePlay}
+            showNativeControls={true}
             {...rest}
           />
         </div>
@@ -155,7 +196,15 @@ const MediaPlayer = ({
             src={src}
             alt={alt}
             className={className}
-            style={{ ...mergedStyle, cursor: "pointer" }}
+            style={{
+              ...mergedStyle,
+              cursor: "pointer",
+              borderRadius: 8,
+              borderTopLeftRadius: mediaTitle ? 0 : 8,
+              borderTopRightRadius: mediaTitle ? 0 : 8,
+              marginTop: 0,
+              paddingTop: 0,
+            }}
             onClick={() => setViewerOpen(true)}
             {...rest}
           />

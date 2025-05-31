@@ -14,10 +14,30 @@ const storage = multer.diskStorage({
     if (file.mimetype.startsWith("image/")) {
       subfolder = "photos";
     } else if (
-      file.mimetype.startsWith("audio/") ||
-      (file.originalname && file.originalname.toLowerCase().endsWith(".webm") && file.fieldname === "media")
+      file.originalname && file.originalname.toLowerCase().endsWith(".webm")
     ) {
-      // Save .webm files to audio if they are uploaded as 'media' (audio recorder)
+      // Try to get intended type from fieldname if not in req.body
+      let intendedType = req.body.media_type || req.body.mediaType;
+      if (!intendedType && file.fieldname && file.fieldname.includes("__")) {
+        // e.g., fieldname: "audio__media" or "video__media"
+        intendedType = file.fieldname.split("__")[0];
+        console.log("DEBUG intendedType from fieldname:", intendedType);
+      }
+      console.log("DEBUG intendedType:", intendedType, "typeof:", typeof intendedType);
+      if (intendedType && typeof intendedType === "string") {
+        intendedType = intendedType.trim().toLowerCase();
+        // Set mimetype to intendedType for downstream logic
+        file.mimetype = intendedType;
+      }
+      // Now use mimetype-based logic as normal
+      if (file.mimetype.startsWith("audio")) {
+        subfolder = "audio";
+      } else if (file.mimetype.startsWith("video")) {
+        subfolder = "videos";
+      } else {
+        subfolder = file.mimetype === "video/webm" ? "videos" : "audio";
+      }
+    } else if (file.mimetype.startsWith("audio/")) {
       subfolder = "audio";
     } else if (file.mimetype.startsWith("video/")) {
       subfolder = "videos";
@@ -46,7 +66,15 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
  // POST /api/posts/upload-media
-router.post("/upload-media", upload.single("media"), postsController.uploadMedia);
+router.post(
+  "/upload-media",
+  upload.fields([
+    { name: "media", maxCount: 1 },
+    { name: "audio__media", maxCount: 1 },
+    { name: "video__media", maxCount: 1 },
+  ]),
+  postsController.uploadMedia
+);
 
  // POST /api/posts/:postId/like
 router.post("/:postId/like", postsController.toggleLike);

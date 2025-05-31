@@ -124,10 +124,9 @@ const Camera = ({
     };
     mediaRecorder.onstop = () => {
       const blob = new Blob(recordedChunksRef.current, { type: "video/webm" });
-      const videoUrl = URL.createObjectURL(blob);
       setIsRecording(false);
       recordedChunksRef.current = [];
-      setPreviewedVideo(videoUrl);
+      setPreviewedVideo(blob);
     };
     mediaRecorder.start();
   };
@@ -393,14 +392,30 @@ const Camera = ({
               overflow: "hidden",
             }}
           >
-            <MediaPlayer
-              src={previewedImage || previewedVideo}
-              type={previewedImage ? "image" : "video"}
-              className="w-full h-full object-cover"
-              style={{ aspectRatio: currentAspect, background: "#000" }}
-              controls
-              autoPlay={!!previewedVideo}
-            />
+            {previewedImage ? (
+              <MediaPlayer
+                src={previewedImage}
+                type="image"
+                className="w-full h-full object-cover"
+                style={{ aspectRatio: currentAspect, background: "#000" }}
+                controls
+                autoPlay={false}
+              />
+            ) : previewedVideo ? (
+              <video
+                src={URL.createObjectURL(previewedVideo)}
+                controls
+                autoPlay
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  aspectRatio: currentAspect,
+                  background: "#000",
+                  borderRadius: 8,
+                }}
+              />
+            ) : null}
           </div>
           <div className="w-full flex flex-row items-center justify-center gap-8 py-6 px-4" style={{
             background: "#181f2a",

@@ -209,6 +209,8 @@ const CommentThread = ({
               onClick={() => {
                 setReplyingToCommentId(comment.id);
                 setReplyContent("");
+                setReplyMediaId(null);
+                setReplyMedia(null);
               }}
               style={{ padding: 0 }}
             >
@@ -279,9 +281,9 @@ const CommentThread = ({
                     minHeight={40}
                     actionLabel="Reply"
                     user={user}
-                    onMediaUpload={(id, type, url) => {
+                    onMediaUpload={(id, type, url, title) => {
                       setReplyMediaId(id);
-                      setReplyMedia({ id, type, url });
+                      setReplyMedia({ id, type, url, title: title || "" });
                     }}
                     onNext={(editorInstance, _selectedMedia, _mediaTitleToSend) => {
                       // Ensure latest media title input is written to the editor node before extracting HTML
@@ -325,6 +327,12 @@ const CommentThread = ({
                           mediaTitleToSend = match[2];
                         }
                       }
+                      // Fallback: if replyMedia.title is present and mediaTitleToSend is still undefined, use it
+                      if (!mediaTitleToSend && replyMedia && typeof replyMedia.title === "string" && replyMedia.title.trim().length > 0) {
+                        mediaTitleToSend = replyMedia.title;
+                      }
+                      // Debug: log what is being sent
+                      console.log("Reply submit: commentId", comment.id, "mediaId", replyMediaId, "mediaTitle", mediaTitleToSend, "replyMedia", replyMedia);
                       if (onReply) onReply(comment.id, html, replyMediaId, mediaTitleToSend);
                       setReplyContent("");
                       setReplyMediaId(null);
@@ -344,7 +352,7 @@ const CommentThread = ({
                     }}
                     onFocus={() => setIsReplyEditorActive(true)}
                     className=""
-                    mediaPreview={renderMediaPreviewOnly(replyContent)}
+                    mediaPreview={renderMediaPreviewOnly(replyContent, replyMedia && replyMedia.title ? replyMedia.title : undefined)}
                   />
                 ) : (
                   <PlainText

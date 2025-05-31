@@ -318,7 +318,7 @@ const PostCard = ({
       {/* Post content first, then media */}
       <div className="px-4 pb-2">
         <div className="text-gray-900 text-base mb-2" style={{ minHeight: 32 }}>
-          {renderTextBeforeMedia(content, media_title)}
+          {renderTextBeforeMedia(content, media_title, media_type, media_type && media_type.toLowerCase().startsWith("audio"))}
         </div>
       </div>
       {/* Media (if present) */}
@@ -353,38 +353,38 @@ const PostCard = ({
 
         // Always render the main media block if mediaType and mediaPath are present
         if (mediaPath && mediaType) {
-          const isDocument = (mediaType === "document" || mediaType === "pdf" || (typeof mediaPath === "string" && mediaPath.toLowerCase().endsWith(".pdf")));
+          // Prefer fields from media object if available
+          const src = (mediaObj && (mediaObj.url || mediaObj.media_path || mediaObj.path)) || mediaPath;
+          let type = (mediaObj && (mediaObj.type || mediaObj.media_type)) || mediaType;
+          const title = (mediaObj && (mediaObj.title || mediaObj.media_title)) || media_title;
+          const isDocument = (type === "document" || type === "pdf" || (typeof src === "string" && src.toLowerCase().endsWith(".pdf")));
+          // Normalize type for audio/webm and audio mimetypes
+          if (type && typeof type === "string" && type.toLowerCase().startsWith("audio")) {
+            type = "audio";
+          }
           return (
             <div
               className={
                 isDocument
                   ? "pt-2"
-                  : mediaType === "audio"
-                  ? "px-4"
                   : "px-4 pt-2"
               }
-              style={
-                mediaType === "audio"
-                  ? { paddingTop: 0, marginTop: 0 }
-                  : undefined
-              }
             >
-              {console.log("PostCard MediaPlayer title:", media_title)}
               <MediaPlayer
-                src={mediaPath}
-                type={mediaType}
-                title={media_title}
+                src={src}
+                type={type}
+                title={title}
                 style={{
                   maxWidth: "100%",
-                  minHeight: mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined,
-                  height: mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined,
+                  minHeight: type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined,
+                  height: type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined,
                   borderRadius: 8,
-                  borderTopLeftRadius: media_title ? 0 : 8,
-                  borderTopRightRadius: media_title ? 0 : 8,
-                  margin: mediaType === "audio" ? "0 0 8px 0" : "8px 0"
+                  borderTopLeftRadius: title ? 0 : 8,
+                  borderTopRightRadius: title ? 0 : 8,
+                  margin: type === "audio" ? "0 0 8px 0" : "8px 0"
                 }}
-                height={mediaType === "audio" && !isSingleView ? 120 : mediaType === "audio" ? 180 : undefined}
-                barCount={mediaType === "audio" ? 64 : undefined}
+                height={type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined}
+                barCount={type === "audio" ? 64 : undefined}
               />
             </div>
           );
@@ -624,7 +624,7 @@ function Comment({ comment, comments, handleAddComment, user, loading }) {
   );
 }
 
-function renderTextBeforeMedia(content, media_title) {
+function renderTextBeforeMedia(content, media_title, media_type, suppressAudio) {
   try {
     if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
       return <span dangerouslySetInnerHTML={{ __html: content }} />;

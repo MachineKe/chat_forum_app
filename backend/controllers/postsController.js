@@ -196,9 +196,13 @@ const addCommentToPost = async (req, res) => {
 
 const getAllPosts = async (req, res) => {
   try {
-    const { commented_by, liked_by } = req.query;
+    const { commented_by, liked_by, limit, offset } = req.query;
     let posts;
     const { User, Comment } = require("../models");
+
+    // Parse limit/offset as integers, with defaults
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const parsedOffset = offset ? parseInt(offset, 10) : 0;
 
     if (commented_by) {
       // Find user by username
@@ -226,6 +230,8 @@ const getAllPosts = async (req, res) => {
             attributes: ["username", "full_name", "avatar"],
           },
         ],
+        limit: parsedLimit,
+        offset: parsedOffset,
       });
     } else if (liked_by) {
       // Find user by username
@@ -253,6 +259,8 @@ const getAllPosts = async (req, res) => {
             attributes: ["username", "full_name", "avatar"],
           },
         ],
+        limit: parsedLimit,
+        offset: parsedOffset,
       });
     } else {
       posts = await Post.findAll({
@@ -264,6 +272,8 @@ const getAllPosts = async (req, res) => {
             attributes: ["username", "full_name", "avatar"],
           },
         ],
+        limit: parsedLimit,
+        offset: parsedOffset,
       });
     }
 
@@ -491,29 +501,76 @@ const createPost = async (req, res) => {
 const Media = require("../models/Media");
 
 const uploadMedia = async (req, res) => {
-  if (!req.file) {
+  // Support Multer .fields: check all possible fieldnames
+  let file = null;
+  if (req.files) {
+    if (req.files["audio__media"] && req.files["audio__media"].length > 0) {
+      file = req.files["audio__media"][0];
+    } else if (req.files["video__media"] && req.files["video__media"].length > 0) {
+      file = req.files["video__media"][0];
+    } else if (req.files["media"] && req.files["media"].length > 0) {
+      file = req.files["media"][0];
+    }
+  }
+  if (!file) {
     return res.status(400).json({ error: "No file uploaded." });
   }
   // Optional title from form-data
   const title = req.body.title || null;
   // Determine subfolder from destination
-  const destParts = req.file.destination.split(path.sep);
+  const destParts = file.destination.split(path.sep);
   const uploadsIdx = destParts.lastIndexOf("uploads");
   let subfolder = "";
-  if (req.file.originalname && req.file.originalname.toLowerCase().endsWith('.webm')) {
-    subfolder = "audio";
+  // Determine intended media type from mimetype or explicit form field
+  let intendedType = req.body.media_type || req.body.mediaType || file.mimetype || "";
+  if (typeof intendedType !== "string") {
+    intendedType = "";
+  }
+  intendedType = intendedType.toLowerCase();
+
+  // Special handling for .webm: use intendedType to decide folder
+  if (file.originalname && file.originalname.toLowerCase().endsWith('.webm')) {
+    // Debug log for troubleshooting
+    console.log("UPLOAD DEBUG: .webm upload", {
+      mimetype: file.mimetype,
+      fieldname: file.fieldname,
+      intendedType,
+      size: file.size
+    });
+    // Use explicit media_type from frontend if provided, fallback to mimetype
+    let explicitType = req.body.media_type || req.body.mediaType;
+    if (typeof explicitType !== "string") {
+      explicitType = "";
+    }
+    if (explicitType) {
+      if (explicitType.toLowerCase().startsWith("video")) {
+        subfolder = "videos";
+      } else if (explicitType.toLowerCase().startsWith("audio")) {
+        subfolder = "audio";
+      } else {
+        // fallback: use mimetype
+        subfolder = file.mimetype === "video/webm" ? "videos" : "audio";
+      }
+    } else {
+      // fallback: use mimetype
+      subfolder = file.mimetype === "video/webm" ? "videos" : "audio";
+    }
   } else if (uploadsIdx !== -1 && destParts.length > uploadsIdx + 1) {
     subfolder = destParts[uploadsIdx + 1];
   }
-  const fileUrl = `/uploads/${subfolder}/${req.file.filename}`;
+  const fileUrl = `/uploads/${subfolder}/${file.filename}`;
   try {
-    // If file is .webm, force type to audio/webm for "attach file" uploads
-    let mediaType = req.file.mimetype;
-    if (req.file.originalname && req.file.originalname.toLowerCase().endsWith('.webm')) {
-      mediaType = 'audio/webm';
+    // If file is .webm, set mimetype based on intendedType
+    let mediaType = file.mimetype;
+    if (file.originalname && file.originalname.toLowerCase().endsWith('.webm')) {
+      if (intendedType.startsWith("video")) {
+        mediaType = 'video/webm';
+      } else if (intendedType.startsWith("audio")) {
+        mediaType = 'audio/webm';
+      }
     }
     const media = await Media.create({
-      filename: req.file.filename,
+      filename: file.filename,
       url: fileUrl,
       type: mediaType,
       title: title,

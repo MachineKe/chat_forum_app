@@ -220,10 +220,17 @@ const TiptapEditor = ({
     const file = e.target.files[0];
     if (!file) return;
     const formData = new FormData();
-    formData.append("media", file);
-    if (mediaTitle) formData.append("title", mediaTitle);
-    if (mediaTitle && mediaTitle.trim()) {
-      formData.append("title", mediaTitle.trim());
+    // Use audio__media for .webm audio uploads
+    if (file.name && file.name.toLowerCase().endsWith(".webm")) {
+      formData.append("audio__media", file);
+      if (mediaTitle) formData.append("title", mediaTitle);
+      formData.append("media_type", "audio/webm");
+    } else {
+      formData.append("media", file);
+      if (mediaTitle) formData.append("title", mediaTitle);
+    }
+    if (file.name && file.name.toLowerCase().endsWith(".webm")) {
+      formData.append("media_type", "audio/webm");
     }
     fetch("/api/posts/upload-media", {
       method: "POST",
@@ -235,7 +242,7 @@ const TiptapEditor = ({
           // Use user-provided title if available, else backend, else empty
           const fileTitle = mediaTitle && mediaTitle.trim() ? mediaTitle.trim() : (data.title || "");
           let titleAttr = fileTitle ? ' title="' + fileTitle.replace(/"/g, "") + '"' : "";
-          // Treat .webm as audio for attachments
+          // Treat .webm as audio for attachments (regardless of file.type)
           if (file.name && file.name.toLowerCase().endsWith(".webm")) {
             editor.commands.focus('end');
             editor.chain().insertContent('<audio controls src="' + data.url + '" style="max-width:100%"' + titleAttr + '></audio>').focus('end').run();
@@ -320,7 +327,8 @@ const TiptapEditor = ({
   const handleAudioRecordingSelect = (audioObj) => {
     if (!audioObj || !audioObj.blob) return;
     const formData = new FormData();
-    formData.append("media", audioObj.blob, "recording.webm");
+    // Use audio__media for audio recorder .webm uploads
+    formData.append("audio__media", audioObj.blob, "recording.webm");
     if (mediaTitle) formData.append("title", mediaTitle);
     if (audioObj.title) {
       formData.append("title", audioObj.title);
@@ -375,8 +383,15 @@ const TiptapEditor = ({
       if (file.type.startsWith("image/")) {
         // Upload image to backend
         const formData = new FormData();
-        formData.append("media", file);
-        if (mediaTitle) formData.append("title", mediaTitle);
+        // Use video__media for .webm video uploads
+        if (file.name && file.name.toLowerCase().endsWith(".webm")) {
+          formData.append("video__media", file);
+          if (mediaTitle) formData.append("title", mediaTitle);
+          formData.append("media_type", "video/webm");
+        } else {
+          formData.append("media", file);
+          if (mediaTitle) formData.append("title", mediaTitle);
+        }
         fetch("/api/posts/upload-media", {
           method: "POST",
           body: formData,
@@ -397,31 +412,40 @@ const TiptapEditor = ({
           .catch(() => {
             alert("Image upload failed.");
           });
-      } else if (file.type.startsWith("video/")) {
-        // Upload video to backend
+      } else if (
+        file.type.startsWith("video/") ||
+        (file.name && file.name.toLowerCase().endsWith(".webm"))
+      ) {
+        // Treat .webm as video for photo/video input
         const formData = new FormData();
         formData.append("media", file);
         if (mediaTitle) formData.append("title", mediaTitle);
-        fetch("/api/posts/upload-media", {
-          method: "POST",
-          body: formData,
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.url) {
-              editor.commands.focus('end');
-              editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
-              setSelectedMedia({ src: data.url, type: "video" });
-              if (data.id && typeof onMediaUpload === "function") {
-                onMediaUpload(data.id, "video");
-              }
-            } else {
-              alert("Video upload failed.");
-            }
-          })
-          .catch(() => {
-            alert("Video upload failed.");
-          });
+        if (file.name && file.name.toLowerCase().endsWith(".webm")) {
+          formData.append("media_type", "video/webm");
+        }
+    fetch("/api/posts/upload-media", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Camera video upload response:", data);
+        if (data.url) {
+          editor.commands.focus('end');
+          editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
+          setSelectedMedia({ src: data.url, type: "video" });
+          if (data.id && typeof onMediaUpload === "function") {
+            onMediaUpload(data.id, "video");
+          }
+        } else {
+          alert("Video upload failed: " + (data.error || "No URL returned"));
+          console.error("Video upload failed:", data);
+        }
+      })
+      .catch((err) => {
+        alert("Video upload failed.");
+        console.error("Video upload error:", err);
+      });
       }
       setMediaModalOpen(false);
       setShowCamera(false);
@@ -439,10 +463,11 @@ const TiptapEditor = ({
       .then(blob => {
         const file = new File([blob], "captured-image.png", { type: "image/png" });
         const formData = new FormData();
-        formData.append("media", file);
-        if (mediaTitle) formData.append("title", mediaTitle);
-        fetch("/api/posts/upload-media", {
-          method: "POST",
+    // Use video__media for camera .webm video uploads
+    formData.append("video__media", file);
+    if (mediaTitle) formData.append("title", mediaTitle);
+    fetch("/api/posts/upload-media", {
+      method: "POST",
           body: formData,
         })
           .then((res) => res.json())
@@ -467,35 +492,41 @@ const TiptapEditor = ({
   };
 
   // Handle camera record (video)
-  const handleCameraRecord = (videoUrl) => {
+  const handleCameraRecord = (videoBlob) => {
     // Upload captured video to backend
-    fetch(videoUrl)
-      .then(res => res.blob())
-      .then(blob => {
-        const file = new File([blob], "captured-video.webm", { type: "video/webm" });
-        const formData = new FormData();
-        formData.append("media", file);
-        if (mediaTitle) formData.append("title", mediaTitle);
-        fetch("/api/posts/upload-media", {
-          method: "POST",
-          body: formData,
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.url) {
-              editor.commands.focus('end');
-              editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
-              setSelectedMedia({ src: data.url, type: "video" });
-              if (data.id && typeof onMediaUpload === "function") {
-                onMediaUpload(data.id, "video");
-              }
-            } else {
-              alert("Video upload failed.");
-            }
-          })
-          .catch(() => {
-            alert("Video upload failed.");
-          });
+    if (!(videoBlob instanceof Blob)) {
+      alert("Invalid video data.");
+      setMediaModalOpen(false);
+      setShowCamera(false);
+      return;
+    }
+    console.log("Camera video blob:", videoBlob, "size:", videoBlob.size, "type:", videoBlob.type);
+    const file = new File([videoBlob], "captured-video.webm", { type: "video/webm" });
+    console.log("Camera video file:", file, "size:", file.size, "type:", file.type);
+    const formData = new FormData();
+    formData.append("media", file);
+    if (mediaTitle) formData.append("title", mediaTitle);
+    fetch("/api/posts/upload-media", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Camera video upload response:", data);
+        if (data.url) {
+          editor.commands.focus('end');
+          editor.chain().insertContent(`<video controls src="${data.url}" style="max-width:100%"></video>`).focus('end').run();
+          setSelectedMedia({ src: data.url, type: "video" });
+          if (data.id && typeof onMediaUpload === "function") {
+            onMediaUpload(data.id, "video");
+          }
+        } else {
+          alert("Video upload failed.");
+        }
+      })
+      .catch((err) => {
+        alert("Video upload failed.");
+        console.error("Video upload error:", err);
       });
     setMediaModalOpen(false);
     setShowCamera(false);
@@ -564,7 +595,7 @@ const TiptapEditor = ({
                 padding: 0 !important;
                 min-height: 80px;
               }
-              /* Hide default media previews in the editor */
+              /* Hide media tags in the editor itself; use MediaPlayer preview below */
               .ProseMirror img,
               .ProseMirror video,
               .ProseMirror audio,
@@ -640,20 +671,10 @@ const TiptapEditor = ({
             />
           </div>
         )}
-        {/* Custom MediaPlayer preview */}
-        {mediaPreview ? (
-          <div className="my-4">{mediaPreview}</div>
-        ) : selectedMedia ? (
-          <div className="my-4">
-            <MediaPlayer
-              src={selectedMedia.src}
-              type={selectedMedia.type}
-              title={selectedMedia.title}
-              alt=""
-              style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
-            />
-          </div>
-        ) : null}
+        {/* MediaPlayer-based preview for all media in the editor */}
+        <div className="my-4">
+          {renderMediaPreviewOnly(editor?.getHTML?.() || "", undefined)}
+        </div>
         {/* "Tip" and emoji row */}
         <div className="flex items-center gap-2 mt-2 mb-2">
           <button className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-gray-700 text-sm font-medium hover:bg-gray-200">
@@ -891,39 +912,34 @@ function hasMedia(html) {
   return /<(img|video|audio|embed)\b/i.test(html);
 }
 
-function renderMediaPreviewOnly(html) {
+function renderMediaPreviewOnly(html, overrideTitle) {
   try {
     if (typeof window === "undefined" || typeof window.DOMParser === "undefined") {
-      return null;
+      return <span dangerouslySetInnerHTML={{ __html: html }} />;
     }
     const parser = new window.DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     const nodes = Array.from(doc.body.childNodes);
 
-    // Only collect media nodes (img, video, audio, embed)
-    const mediaNodes = [];
-    nodes.forEach((node) => {
-      if (
+    // Only render media nodes (img, video, audio, embed)
+    const mediaNodes = nodes.filter(
+      node =>
         node.nodeType === 1 &&
-        (node.tagName === "IMG" ||
-          node.tagName === "VIDEO" ||
-          node.tagName === "AUDIO" ||
-          node.tagName === "EMBED")
-      ) {
-        mediaNodes.push(node);
-      }
-    });
+        ["IMG", "VIDEO", "AUDIO", "EMBED"].includes(node.tagName)
+    );
 
     // Helper to convert DOM node to React element
     function domToReact(node, key) {
       if (node.nodeType === 1) {
         if (node.tagName === "IMG") {
           const src = node.getAttribute("src");
+          const title = overrideTitle !== undefined ? overrideTitle : (node.getAttribute("title") || "");
           return (
             <MediaPlayer
               key={key}
               src={src}
               type="image"
+              title={title}
               alt=""
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
@@ -931,35 +947,42 @@ function renderMediaPreviewOnly(html) {
         }
         if (node.tagName === "VIDEO") {
           const src = node.getAttribute("src");
+          const title = overrideTitle !== undefined ? overrideTitle : (node.getAttribute("title") || "");
           return (
             <MediaPlayer
               key={key}
               src={src}
               type="video"
+              title={title}
+              autoPlay={true}
+              muted={false}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
         }
         if (node.tagName === "AUDIO") {
           const src = node.getAttribute("src");
+          const title = overrideTitle !== undefined ? overrideTitle : (node.getAttribute("title") || "");
           return (
             <MediaPlayer
               key={key}
               src={src}
               type="audio"
+              title={title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
         }
         if (node.tagName === "EMBED") {
-          // PDF or other document
           const src = node.getAttribute("src");
           const type = node.getAttribute("type");
+          const title = overrideTitle !== undefined ? overrideTitle : (node.getAttribute("title") || "");
           return (
             <MediaPlayer
               key={key}
               src={src}
               type={type === "application/pdf" ? "pdf" : "document"}
+              title={title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
             />
           );
@@ -974,8 +997,8 @@ function renderMediaPreviewOnly(html) {
       </>
     );
   } catch (err) {
-    // Fallback: show nothing if parsing fails
-    return null;
+    // Fallback to raw HTML if parsing fails
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
   }
 }
 
