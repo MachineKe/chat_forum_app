@@ -140,7 +140,6 @@ const addCommentToPost = async (req, res) => {
     // If media_id is provided, fetch media info
     let resolvedMediaId = media_id || null;
     if (media_id && (!media_type || !media_path)) {
-      const Media = require("../models/Media");
       const media = await Media.findByPk(media_id);
       if (media) {
         finalMediaType = media.type && media.type.startsWith("audio") ? "audio"
@@ -164,7 +163,8 @@ const addCommentToPost = async (req, res) => {
       parent_id: parent_id || null,
       media_id: resolvedMediaId,
       media_type: type,
-      media_path: path
+      media_path: path,
+      thumbnail: req.body.thumbnail || null
     });
     // Fetch with author
     const commentWithAuthor = await Comment.findOne({
@@ -312,6 +312,7 @@ const getAllPosts = async (req, res) => {
       commentCount: commentCounts[post.id] || 0,
       viewCount: post.view_count,
       media_title: post.media_title,
+      thumbnail: post.thumbnail, // include post thumbnail
       media: post.media_id && mediaMap[post.media_id]
         ? {
             id: mediaMap[post.media_id].id,
@@ -319,6 +320,7 @@ const getAllPosts = async (req, res) => {
             type: mediaMap[post.media_id].type,
             filename: mediaMap[post.media_id].filename,
             title: mediaMap[post.media_id].title, // include media title
+            thumbnail: mediaMap[post.media_id].thumbnail // include media thumbnail
           }
         : null,
     }));
@@ -400,7 +402,6 @@ const createPost = async (req, res) => {
 
     // If media_id is provided, fetch media info
     if (media_id && (!media_type || !media_path)) {
-      const Media = require("../models/Media");
       const media = await Media.findByPk(media_id);
       if (media) {
         finalMediaType = media.type && media.type.startsWith("audio") ? "audio"
@@ -424,6 +425,7 @@ const createPost = async (req, res) => {
       media_id: media_id || null,
       media_type: type || null,
       media_path: path || null,
+      thumbnail: req.body.thumbnail || null,
     });
 
     // Debug: log media_title and media_id
@@ -432,7 +434,6 @@ const createPost = async (req, res) => {
     // If media_id and media_title are provided, update the Media's title as well
     let updatedMedia = null;
     if (media_id && media_title) {
-      const Media = require("../models/Media");
       const [affectedRows] = await Media.update(
         { title: media_title },
         { where: { id: media_id } }
@@ -498,11 +499,11 @@ const createPost = async (req, res) => {
  * POST /api/posts/upload-media
  * Handles media file uploads for posts.
  */
-const Media = require("../models/Media");
 
 const uploadMedia = async (req, res) => {
   // Support Multer .fields: check all possible fieldnames
   let file = null;
+  let thumbnailFile = null;
   if (req.files) {
     if (req.files["audio__media"] && req.files["audio__media"].length > 0) {
       file = req.files["audio__media"][0];
@@ -510,6 +511,9 @@ const uploadMedia = async (req, res) => {
       file = req.files["video__media"][0];
     } else if (req.files["media"] && req.files["media"].length > 0) {
       file = req.files["media"][0];
+    }
+    if (req.files["thumbnail"] && req.files["thumbnail"].length > 0) {
+      thumbnailFile = req.files["thumbnail"][0];
     }
   }
   if (!file) {
@@ -559,6 +563,14 @@ const uploadMedia = async (req, res) => {
     subfolder = destParts[uploadsIdx + 1];
   }
   const fileUrl = `/uploads/${subfolder}/${file.filename}`;
+
+  // Handle thumbnail file if present
+  let thumbnailUrl = null;
+  if (thumbnailFile) {
+    // Always use /uploads/thumbnail/ for thumbnails
+    thumbnailUrl = `/uploads/thumbnail/${thumbnailFile.filename}`;
+  }
+
   try {
     // If file is .webm, set mimetype based on intendedType
     let mediaType = file.mimetype;
@@ -576,8 +588,9 @@ const uploadMedia = async (req, res) => {
       title: title,
       uploader_id: req.user ? req.user.id : null, // If using authentication middleware
       created_at: new Date(),
+      thumbnail: thumbnailUrl,
     });
-    return res.json({ id: media.id, url: media.url, title: media.title });
+    return res.json({ id: media.id, url: media.url, title: media.title, thumbnail: media.thumbnail });
   } catch (err) {
     return res.status(500).json({ error: "Failed to save media record.", details: err.message });
   }
@@ -629,12 +642,14 @@ const getPostById = async (req, res) => {
       createdAt: post.created_at,
       viewCount: post.view_count,
       media_title: post.media_title,
+      thumbnail: post.thumbnail, // <-- ensure thumbnail is included
       media: post.media
         ? {
             id: post.media.id,
             url: post.media.url,
             type: post.media.type,
             filename: post.media.filename,
+            thumbnail: post.media.thumbnail // also include media thumbnail if present
           }
         : null,
       media_type: post.media_type,
@@ -645,7 +660,35 @@ const getPostById = async (req, res) => {
   }
 };
 
+const Media = require("../models/Media");
+
+async function uploadThumbnail(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No thumbnail file uploaded" });
+    }
+    const mediaUrl = req.body.media_url;
+    if (!mediaUrl) {
+      return res.status(400).json({ error: "No media_url provided" });
+    }
+    // Find the media record by URL
+    const media = await Media.findOne({ where: { url: mediaUrl } });
+    if (!media) {
+      return res.status(404).json({ error: "Media not found" });
+    }
+    // Save the thumbnail path in the media record
+    const relPath = "/uploads/thumbnail/" + req.file.filename;
+    media.thumbnail = relPath;
+    await media.save();
+    return res.json({ thumbnail: relPath });
+  } catch (err) {
+    console.error("uploadThumbnail error:", err);
+    return res.status(500).json({ error: "Failed to upload thumbnail" });
+  }
+}
+
 module.exports = {
+  uploadThumbnail,
   getCommentsForPost,
   toggleLike,
   getLikes,

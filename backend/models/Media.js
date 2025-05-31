@@ -27,6 +27,10 @@ const Media = sequelize.define('Media', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  thumbnail: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

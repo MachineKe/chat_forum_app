@@ -100,4 +100,33 @@ router.get("/:postId/comments", postsController.getCommentsForPost);
 // POST /api/posts/:postId/comments
 router.post("/:postId/comments", postsController.addCommentToPost);
 
+/**
+ * Multer storage for thumbnails (uploads/thumbnail)
+ */
+const thumbnailStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, "../public/uploads/thumbnail");
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const uniqueName = "thumb-" + Date.now() + ext;
+    cb(null, uniqueName);
+  },
+});
+const uploadThumbnail = multer({ storage: thumbnailStorage });
+
+/**
+ * POST /api/posts/upload-thumbnail
+ * Accepts: thumbnail (file), media_url (string)
+ */
+router.post(
+  "/upload-thumbnail",
+  uploadThumbnail.single("thumbnail"),
+  postsController.uploadThumbnail
+);
+
 module.exports = router;

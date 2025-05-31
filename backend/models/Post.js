@@ -39,6 +39,10 @@ const Post = sequelize.define('Post', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  thumbnail: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
