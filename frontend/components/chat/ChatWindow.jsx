@@ -8,6 +8,7 @@ import RichMediaInputMini from "../common/RichMediaInputMini";
 
 const ChatWindow = ({
   user,
+  loggedInUser,
   messages,
   onSendMessage,
   onAttach,
@@ -34,26 +35,45 @@ const ChatWindow = ({
     <section className="flex-1 flex flex-col min-w-[500px] bg-white rounded-2xl shadow-lg h-[90vh] min-h-[90vh]">
       <ChatHeader user={user} onVideoCall={onVideoCall} className="rounded-t-2xl" />
       <div className="flex-1 overflow-y-auto px-8 py-6 space-y-2" style={{ minHeight: 0 }}>
-        {messages.map((msg) => (
-          <ChatBubble
-            key={msg.id}
-            message={msg.text}
-            isOwn={msg.isOwn}
-            sender={msg.isOwn ? "You" : user.name}
-            time={msg.time}
-            avatar={msg.avatar}
-          />
-        ))}
+        {(Array.isArray(messages) ? messages : []).map((msg) => {
+          const isOwn = msg.sender_id === loggedInUser?.id;
+          // Relative time formatter
+          function getRelativeTime(date) {
+            if (!date) return "";
+            const now = new Date();
+            const d = new Date(date);
+            const diff = Math.floor((now - d) / 1000);
+            if (diff < 60) return "just now";
+            if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+            return d.toLocaleDateString();
+          }
+          return (
+            <ChatBubble
+              key={msg.id}
+              message={msg.content}
+              isOwn={isOwn}
+              sender={isOwn ? "You" : user?.full_name || user?.name || "User"}
+              time={getRelativeTime(msg.created_at)}
+              avatar={isOwn ? (loggedInUser?.avatar || "") : (user?.avatar || "")}
+            />
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
       <div className="px-8 py-4 bg-white rounded-b-2xl">
         <div style={{ maxHeight: "27vh", width: "100%", overflowY: "auto" }}>
           <RichMediaInputMini
-            user={user}
-            onSubmit={({ content, reset }) => {
-              if (!content.trim()) return;
-              onSendMessage(content);
-              reset();
+            user={loggedInUser}
+            onSubmit={payload => {
+              // Strip HTML tags from content
+              const html = payload.content || "";
+              const tempDiv = document.createElement("div");
+              tempDiv.innerHTML = html;
+              const plainText = tempDiv.textContent || tempDiv.innerText || "";
+              if (!plainText.trim() && !payload.media_id && !payload.media_src) return;
+              onSendMessage(null, { ...payload, content: plainText });
+              payload.reset();
             }}
             placeholder="Type a message"
             actionLabel="Send"

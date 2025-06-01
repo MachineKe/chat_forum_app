@@ -19,6 +19,34 @@ const Message = sequelize.define('Message', {
     type: DataTypes.TEXT,
     allowNull: false
   },
+  media_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  media_type: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  media_title: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  media_src: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  media_path: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  thumbnail: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  parent_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

@@ -61,7 +61,7 @@ const TiptapMediaMetaInput = ({
           />
         )}
         {(selectedMedia?.type === "audio" || selectedMedia?.type === "video") && (
-          <label className="flex flex-col items-center justify-center border border-gray-300 rounded cursor-pointer p-1 hover:border-blue-400 transition-all" style={{ width: 40, minWidth: 0 }}>
+          <label className="flex flex-col items-center justify-center border border-gray-300 rounded cursor-pointer p-1 hover:border-blue-400 transition-all" style={{ width: 50, minWidth: 0 }}>
             <input
               type="file"
               accept="image/*"

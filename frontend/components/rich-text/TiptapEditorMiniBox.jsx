@@ -12,6 +12,8 @@ import useTiptapEditor from "@hooks/useTiptapEditor";
  * TiptapEditorMiniBox - fully isolated mini rich text editor for chat input.
  * Handles its own modals, toolbar, media meta, and compact preview.
  */
+import { IoClose } from "react-icons/io5";
+
 export default function TiptapEditorMiniBox({
   value,
   onChange,
@@ -22,6 +24,7 @@ export default function TiptapEditorMiniBox({
   actionLabel = "Send",
   user,
   onMediaUpload,
+  onRestorePlain,
   ...rest
 }) {
   const tiptap = useTiptapEditor({
@@ -50,8 +53,36 @@ export default function TiptapEditorMiniBox({
           display: "flex",
           flexDirection: "column",
           boxSizing: "border-box",
+          position: "relative"
         }}
       >
+        {typeof onRestorePlain === "function" && (
+          <button
+            type="button"
+            className="absolute z-20"
+            style={{
+              top: 6,
+              right: 6,
+              background: "#fff",
+              borderRadius: "50%",
+              boxShadow: "0 1px 4px 0 rgba(0,0,0,0.04)",
+              padding: 2,
+              width: 28,
+              height: 28,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #e5e7eb",
+              cursor: "pointer",
+              lineHeight: 1,
+              fontSize: 22,
+            }}
+            aria-label="Restore plain text input"
+            onClick={onRestorePlain}
+          >
+            <IoClose />
+          </button>
+        )}
         <div className="flex-1 flex flex-col px-0 pb-0" style={{ minHeight: 0, height: "100%" }}>
           <div className="relative flex-1 min-h-[48px]">
             <EditorContent
@@ -269,6 +300,29 @@ export default function TiptapEditorMiniBox({
                         tiptap.setSelectedMedia(null);
                         tiptap.setSelectedThumbnail(null);
                         tiptap.setMediaTitleInput("");
+                        if (tiptap.editor) {
+                          // Remove all media nodes from the editor content
+                          const { state, view } = tiptap.editor;
+                          let tr = state.tr;
+                          let found = false;
+                          state.doc.descendants((node, pos) => {
+                            if (
+                              ["audio", "video", "image", "pdfembed"].includes(node.type.name)
+                            ) {
+                              tr = tr.delete(pos, pos + node.nodeSize);
+                              found = true;
+                              return false;
+                            }
+                            return true;
+                          });
+                          if (found) {
+                            view.dispatch(tr);
+                            tiptap.editor.commands.focus('end');
+                          }
+                        }
+                        if (typeof onMediaUpload === "function") {
+                          onMediaUpload(null, null, null, "");
+                        }
                       }}
                       aria-label="Remove media"
                     >

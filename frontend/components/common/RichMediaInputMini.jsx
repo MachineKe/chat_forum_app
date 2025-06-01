@@ -19,6 +19,7 @@ export default function RichMediaInputMini({
   initialMediaId = null,
   initialMediaType = null,
   initialMediaTitle = "",
+  editable = true,
 }) {
   const [content, setContent] = React.useState(initialValue);
   const [mediaId, setMediaId] = React.useState(initialMediaId);
@@ -76,14 +77,15 @@ export default function RichMediaInputMini({
       {isEditorActive ? (
         <TiptapEditorMini
           value={content}
-          onChange={setContent}
-          onNext={handleNext}
           placeholder={placeholder}
           minHeight={minHeight}
+          editable={editable}
+          onChange={setContent}
+          onNext={handleNext}
           actionLabel={actionLabel}
           user={user}
           onMediaUpload={handleMediaUpload}
-          onClose={reset}
+          onRestorePlain={() => setIsEditorActive(false)}
         />
       ) : (
         <PlainText
