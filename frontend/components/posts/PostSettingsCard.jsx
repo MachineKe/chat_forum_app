@@ -169,15 +169,7 @@ const PostSettingsCard = ({ content, media, onBack, onPost, loading, user = { na
             <path d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <span className="mr-2">
-          <img
-            src={user.avatar}
-            alt={user.name}
-            style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }}
-          />
-        </span>
-        <span className="font-semibold text-gray-900">{user.name}</span>
-        <div className="flex-1 text-center font-semibold text-lg text-gray-900">Post settings</div>
+        <div className="flex-1 text-center mr-2 font-semibold text-lg text-gray-900">Post settings</div>
         <div className="w-8" /> {/* Spacer for symmetry */}
       </div>
       {/* Post preview */}
