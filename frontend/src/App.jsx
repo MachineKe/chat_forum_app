@@ -7,6 +7,7 @@ import PostDetail from "@pages/PostDetail";
 import Profile from "@pages/Profile";
 import PublicProfile from "@pages/PublicProfile";
 import AudioRecorderDemo from "@pages/AudioRecorderDemo";
+import Chat from "@pages/Chat";
 import Sidebar from "@components/layout/Sidebar";
 
 // Layout with persistent Sidebar
@@ -31,6 +32,8 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/user/:username" element={<PublicProfile />} />
           <Route path="/recorder" element={<AudioRecorderDemo />} />
+          <Route path="/recorder" element={<AudioRecorderDemo />} />
+          <Route path="/chat" element={<Chat />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
