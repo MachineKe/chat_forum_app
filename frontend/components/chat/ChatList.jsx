@@ -53,8 +53,8 @@ const ChatList = ({
           key={user.id}
           className={`flex items-center gap-4 w-full px-2 py-3 rounded-xl mb-2 transition ${
             user.id === selectedUserId
-              ? "bg-blue-50 ring-2 ring-blue-400"
-              : "hover:bg-gray-100"
+              ? "bg-blue-50 ring-2 ring-blue-400 ml-[1px] mt-[1px]"
+              : "hover:bg-gray-100 ml-[1px] mt-[1px]"
           }`}
           onClick={() => onSelectUser(user.id)}
         >
