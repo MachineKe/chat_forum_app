@@ -4,9 +4,45 @@ const TiptapToolbar = ({
   editor,
   setMediaModalOpen,
   setAttachmentModalOpen,
+  mini = false,
 }) => {
   if (!editor) return null;
 
+  if (mini) {
+    // Compact toolbar for chat input: only essential controls, tight spacing, no label
+    return (
+      <div className="flex items-center gap-1 mt-1 mb-1">
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200"
+          title="Photo/Video"
+          onClick={() => setMediaModalOpen && setMediaModalOpen(true)}
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#34D399"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/><path d="M21 15l-5-5L5 21" stroke="#fff" strokeWidth="2"/></svg>
+        </button>
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-purple-100 hover:bg-purple-200"
+          title="Attach file"
+          onClick={() => setAttachmentModalOpen && setAttachmentModalOpen(true)}
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16.5 13.5V7a4.5 4.5 0 0 0-9 0v9a4.5 4.5 0 0 0 9 0V8.5" stroke="#7c3aed" strokeWidth="2" /><rect x="7" y="7" width="10" height="10" rx="5" fill="#ede9fe" /></svg>
+        </button>
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-yellow-100 hover:bg-yellow-200"
+          title="Emoji"
+          onClick={() => {
+            const feeling = prompt("Add emoji or feeling:");
+            if (feeling) {
+              editor.chain().focus().insertContent(`${feeling} `).run();
+            }
+          }}
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#FBBF24"/><circle cx="9" cy="10" r="1.5" fill="#fff"/><circle cx="15" cy="10" r="1.5" fill="#fff"/><path d="M8 15c1.333 1 2.667 1 4 0" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg>
+        </button>
+      </div>
+    );
+  }
+
+  // Default (full) toolbar
   return (
     <div className="flex items-center justify-between bg-gray-50 rounded-lg px-2 py-2 mt-2 mb-2 border border-gray-200">
       <span className="text-gray-500 text-sm">Add to your post</span>

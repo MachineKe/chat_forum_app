@@ -1,11 +1,13 @@
 import React from "react";
+import { IoSend } from "react-icons/io5";
 
 const TiptapPostButton = ({
   editor,
   selectedMedia,
   mediaTitleInput,
   onNext,
-  actionLabel = "Next"
+  actionLabel = "Next",
+  mini = false
 }) => {
   // Helper to check for media tags in HTML
   function hasMedia(html) {
@@ -15,11 +17,16 @@ const TiptapPostButton = ({
 
   return (
     <button
-      className={`w-full py-2 rounded-lg font-semibold text-white transition-colors ${
-        (editor.getText().trim() || hasMedia(editor.getHTML()))
-          ? "bg-blue-600 hover:bg-blue-700"
-          : "bg-gray-300 cursor-not-allowed"
-      }`}
+      className={
+        mini
+          ? "p-0 m-0 bg-transparent border-none shadow-none flex items-center justify-center"
+          : `w-full py-2 rounded-lg font-semibold text-white transition-colors ${
+              (editor.getText().trim() || hasMedia(editor.getHTML()))
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-gray-300 cursor-not-allowed"
+            }`
+      }
+      style={mini ? { background: "transparent", boxShadow: "none", border: "none" } : {}}
       disabled={!(editor.getText().trim() || hasMedia(editor.getHTML()))}
       onClick={() => {
         // Always update the media node's title with the latest input before posting
@@ -73,7 +80,16 @@ const TiptapPostButton = ({
         }
       }}
     >
-      {actionLabel}
+      {mini ? (
+        <IoSend
+          size={28}
+          className={
+            (editor.getText().trim() || hasMedia(editor.getHTML()))
+              ? "text-blue-600"
+              : "text-gray-400"
+          }
+        />
+      ) : actionLabel}
     </button>
   );
 };

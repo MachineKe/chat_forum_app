@@ -4,7 +4,7 @@ import ChatBubble from "../layout/ChatBubble";
 import Input from "../layout/Input";
 import Button from "../layout/Button";
 import { FiPaperclip, FiMic, FiSend } from "react-icons/fi";
-import RichMediaInput from "../common/RichMediaInput";
+import RichMediaInputMini from "../common/RichMediaInputMini";
 
 const ChatWindow = ({
   user,
@@ -48,7 +48,7 @@ const ChatWindow = ({
       </div>
       <div className="px-8 py-4 bg-white rounded-b-2xl">
         <div style={{ maxHeight: "27vh", width: "100%", overflowY: "auto" }}>
-          <RichMediaInput
+          <RichMediaInputMini
             user={user}
             onSubmit={({ content, reset }) => {
               if (!content.trim()) return;

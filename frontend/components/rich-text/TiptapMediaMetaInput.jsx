@@ -9,9 +9,99 @@ const TiptapMediaMetaInput = ({
   selectedThumbnail,
   setSelectedThumbnail,
   editor,
+  mini = false,
+  hideTitleInput = false,
 }) => {
   if (!selectedMedia) return null;
 
+  // MINI MODE: compact row with small input, thumbnail selector, and preview
+  if (mini) {
+    return (
+      <div className="flex items-center gap-2 mb-1">
+        {!hideTitleInput && (
+          <input
+            type="text"
+            className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-200"
+            placeholder="Title"
+            value={mediaTitleInput}
+            style={{ width: 80, minWidth: 0, fontSize: 12 }}
+            onChange={e => setMediaTitleInput(e.target.value)}
+            onFocus={() => {
+              setMediaTitleInput(selectedMedia.title || "");
+            }}
+            onBlur={e => {
+              const newTitle = e.target.value;
+              setSelectedMedia({ ...selectedMedia, title: newTitle });
+              if (editor && editor.state && selectedMedia && selectedMedia.src) {
+                const { state, view } = editor;
+                let tr = state.tr;
+                let found = false;
+                state.doc.descendants((node, pos) => {
+                  if (
+                    ["audio", "video", "image", "pdfembed"].includes(node.type.name) &&
+                    node.attrs &&
+                    node.attrs.src === selectedMedia.src &&
+                    !found
+                  ) {
+                    tr = tr.setNodeMarkup(pos, undefined, {
+                      ...node.attrs,
+                      title: newTitle
+                    });
+                    found = true;
+                    return false;
+                  }
+                  return true;
+                });
+                if (found) {
+                  view.dispatch(tr);
+                  editor.commands.focus('end');
+                }
+              }
+            }}
+          />
+        )}
+        {(selectedMedia?.type === "audio" || selectedMedia?.type === "video") && (
+          <label className="flex flex-col items-center justify-center border border-gray-300 rounded cursor-pointer p-1 hover:border-blue-400 transition-all" style={{ width: 40, minWidth: 0 }}>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async e => {
+                const file = e.target.files[0];
+                setSelectedThumbnail(file || null);
+                if (file && selectedMedia) {
+                  // Upload thumbnail to backend and associate with media
+                  const formData = new FormData();
+                  formData.append("thumbnail", file);
+                  formData.append("media_url", selectedMedia.src);
+                  const res = await fetch("/api/posts/upload-thumbnail", {
+                    method: "POST",
+                    body: formData,
+                  });
+                  const data = await res.json();
+                  if (data && data.thumbnail) {
+                    setSelectedMedia({ ...selectedMedia, thumbnail: data.thumbnail });
+                    // Do NOT clear selectedThumbnail in mini mode so preview remains visible
+                    if (!mini) setSelectedThumbnail(null);
+                  } else {
+                    alert("Failed to upload thumbnail.");
+                  }
+                }
+              }}
+            />
+            <span className="text-lg text-gray-400">
+              <MdOutlineAddPhotoAlternate />
+            </span>
+            <span className="text-[10px] text-gray-500 leading-tight mt-0.5">
+              {selectedThumbnail ? "Change thumbnail" : "Thumbnail"}
+            </span>
+          </label>
+        )}
+      </div>
+    );
+  }
+
+  // DEFAULT MODE
   return (
     <div className="mb-2">
       <input
