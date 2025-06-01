@@ -26,6 +26,7 @@ const AudioPlayer = forwardRef(({
   const audioRef = ref || localAudioRef;
   const canvasRef = useRef();
   const animationRef = useRef();
+  const seekBarRef = useRef();
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -33,6 +34,7 @@ const AudioPlayer = forwardRef(({
   const [barHeights, setBarHeights] = useState(
     Array.from({ length: barCount }, () => Math.random() * height)
   );
+  const [dragging, setDragging] = useState(false);
 
   // Animate bar heights while playing
   useEffect(() => {
@@ -151,13 +153,76 @@ const AudioPlayer = forwardRef(({
     );
   }, [height, barCount]);
 
-  // Seek on bar click
+  // Seek on visualization canvas click
   const handleSeek = (e) => {
     if (!canvasRef.current || !audioRef.current || !duration) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const percent = x / rect.width;
     audioRef.current.currentTime = percent * duration;
+  };
+
+  // Seek on seek bar click or drag
+  const getSeekPercent = (clientX) => {
+    if (!seekBarRef.current) return 0;
+    const rect = seekBarRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    return Math.max(0, Math.min(1, x / rect.width));
+  };
+
+  const handleSeekBarClick = (e) => {
+    if (!seekBarRef.current || !audioRef.current || !duration) return;
+    e.stopPropagation();
+    const percent = getSeekPercent(e.clientX);
+    audioRef.current.currentTime = percent * duration;
+  };
+
+  const handleSeekBarMouseDown = (e) => {
+    if (!seekBarRef.current || !audioRef.current || !duration) return;
+    e.stopPropagation();
+    setDragging(true);
+    const percent = getSeekPercent(e.clientX);
+    audioRef.current.currentTime = percent * duration;
+    window.addEventListener("mousemove", handleSeekBarMouseMove);
+    window.addEventListener("mouseup", handleSeekBarMouseUp);
+  };
+
+  const handleSeekBarMouseMove = (e) => {
+    if (!seekBarRef.current || !audioRef.current || !duration) return;
+    const percent = getSeekPercent(e.clientX);
+    audioRef.current.currentTime = percent * duration;
+  };
+
+  const handleSeekBarMouseUp = (e) => {
+    setDragging(false);
+    window.removeEventListener("mousemove", handleSeekBarMouseMove);
+    window.removeEventListener("mouseup", handleSeekBarMouseUp);
+  };
+
+  // Touch events for mobile
+  const handleSeekBarTouchStart = (e) => {
+    if (!seekBarRef.current || !audioRef.current || !duration) return;
+    setDragging(true);
+    const touch = e.touches[0];
+    const percent = getSeekPercent(touch.clientX);
+    audioRef.current.currentTime = percent * duration;
+    window.addEventListener("touchmove", handleSeekBarTouchMove);
+    window.addEventListener("touchend", handleSeekBarTouchEnd);
+    window.addEventListener("touchcancel", handleSeekBarTouchEnd);
+  };
+
+  const handleSeekBarTouchMove = (e) => {
+    if (!seekBarRef.current || !audioRef.current || !duration) return;
+    const touch = e.touches[0];
+    const percent = getSeekPercent(touch.clientX);
+    audioRef.current.currentTime = percent * duration;
+  };
+
+  const handleSeekBarTouchEnd = (e) => {
+    setDragging(false);
+    window.removeEventListener("touchmove", handleSeekBarTouchMove);
+    window.removeEventListener("touchend", handleSeekBarTouchEnd);
+    window.removeEventListener("touchcancel", handleSeekBarTouchEnd);
   };
 
   const togglePlay = () => {
@@ -285,7 +350,7 @@ const AudioPlayer = forwardRef(({
           {...audioProps}
         />
         <button
-          onClick={togglePlay}
+          onClick={e => { e.stopPropagation(); togglePlay(); }}
           style={{
             border: "none",
             background: "none",
@@ -313,16 +378,22 @@ const AudioPlayer = forwardRef(({
           {formatTime(currentTime)}
         </span>
         <div
+          ref={seekBarRef}
           style={{
             flex: 1,
-            height: 6,
-            background: "#d1d5db",
-            borderRadius: 3,
+            height: 24, // Increased hit area for easier interaction
+            background: "transparent",
             position: "relative",
             cursor: "pointer",
             margin: "0 8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            touchAction: "none"
           }}
-          onClick={handleSeek}
+          onClick={handleSeekBarClick}
+          onMouseDown={handleSeekBarMouseDown}
+          onTouchStart={handleSeekBarTouchStart}
           tabIndex={0}
           aria-label="Seek"
         >
@@ -330,12 +401,27 @@ const AudioPlayer = forwardRef(({
             style={{
               position: "absolute",
               left: 0,
-              top: 0,
+              top: "50%",
+              transform: "translateY(-50%)",
+              height: 6,
+              width: "100%",
+              background: "#d1d5db",
+              borderRadius: 3,
+              pointerEvents: "none"
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: "50%",
+              transform: "translateY(-50%)",
               height: 6,
               width: duration ? `${(currentTime / duration) * 100}%` : "0%",
               background: "#222",
               borderRadius: 3,
               transition: "width 0.1s linear",
+              pointerEvents: "none"
             }}
           />
         </div>
@@ -343,7 +429,7 @@ const AudioPlayer = forwardRef(({
           {formatTime(duration)}
         </span>
         <button
-          onClick={toggleMute}
+          onClick={e => { e.stopPropagation(); toggleMute(); }}
           style={{
             border: "none",
             background: "none",
