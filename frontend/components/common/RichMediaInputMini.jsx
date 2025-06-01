@@ -65,7 +65,7 @@ export default function RichMediaInputMini({
         media_id: mediaId,
         media_type: mediaType,
         media_title: titleToSend,
-        media_src: mediaSrc,
+        media_path: mediaSrc,
         thumbnail,
         reset,
       });

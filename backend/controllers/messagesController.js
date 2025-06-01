@@ -6,6 +6,7 @@ const { Message } = require("../models");
  */
 exports.createMessage = async (req, res) => {
   try {
+    console.log("Received message payload:", req.body);
     const {
       content,
       media_id,
@@ -30,6 +31,7 @@ exports.createMessage = async (req, res) => {
       sender_id,
       receiver_id,
     });
+    console.log("Saved message:", message && message.toJSON ? message.toJSON() : message);
     // Emit updated messages for this conversation
     const io = req.app.get("io");
     if (io && sender_id && receiver_id) {
@@ -173,7 +175,11 @@ exports.getLatestMessagesPerUser = async (req, res) => {
         });
         return {
           ...user.toJSON(),
-          lastMessage: latestMsg ? latestMsg.content : null,
+          lastMessage: latestMsg
+            ? (latestMsg.content && latestMsg.content.trim() !== ""
+                ? latestMsg.content
+                : (latestMsg.media_title || "Media"))
+            : null,
           lastMessageTime: latestMsg ? latestMsg.created_at : null,
         };
       })

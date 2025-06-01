@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import LeftSidebar from "./LeftSidebar";
 import RightSidebar from "./RightSidebar";
 
@@ -14,11 +15,13 @@ const Sidebar = ({
   leftSidebarProps = {},
   rightSidebarProps = {},
 }) => {
+  const location = useLocation();
+  const isChatPage = location.pathname === "/chat";
   return (
     <div className={`flex min-h-screen w-full bg-white ${className}`} style={style}>
       <LeftSidebar {...leftSidebarProps} />
       <main className="flex-1 min-h-screen">{children}</main>
-      <RightSidebar {...rightSidebarProps} />
+      {!isChatPage && <RightSidebar {...rightSidebarProps} />}
     </div>
   );
 };

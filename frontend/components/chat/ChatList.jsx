@@ -19,7 +19,7 @@ const ChatList = ({
   onNewMessage,
   loading = false,
 }) => (
-  <aside className="w-80 bg-white rounded-2xl shadow-lg p-6 flex flex-col h-[90vh] min-h-[90vh]">
+  <aside className="w-80 bg-white rounded-2xl shadow-lg p-6 flex flex-col flex-1 min-h-0 h-full">
     <div className="flex items-center justify-between mb-4">
       <h2 className="text-2xl font-bold">Chats</h2>
       <div className="flex items-center gap-2">
@@ -43,7 +43,7 @@ const ChatList = ({
       value={search}
       onChange={e => setSearch(e.target.value)}
     />
-    <div className="flex-1 overflow-y-auto pr-1" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+    <div className="flex-1 min-h-0 overflow-y-auto pr-1" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
       {loading ? (
         <div className="text-gray-400 text-center mt-8">Loading chats...</div>
       ) : users.length === 0 ? (
