@@ -1,5 +1,5 @@
 import React from "react";
-import Avatar from "../layout/Avatar";
+import Avatar from "@components/layout/Avatar";
 
 const TiptapEditorHeader = ({ user, onClose }) => (
   <div className="flex items-center justify-between px-4 pt-4 pb-2">

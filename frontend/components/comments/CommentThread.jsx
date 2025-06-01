@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import TiptapEditor from "../rich-text/TiptapEditor";
-import renderMediaPreviewOnly from "../rich-text/TiptapMediaPreview";
-import PlainText from "../rich-text/PlainText";
-import ExcessContentManager from "../common/ExcessContentManager";
-import Avatar from "../layout/Avatar";
-import MediaPlayer from "../media/MediaPlayer";
-import LikeButton from "../layout/LikeButton";
+import TiptapEditor from "@components/rich-text/TiptapEditor";
+import renderMediaPreviewOnly from "@components/rich-text/TiptapMediaPreview";
+import PlainText from "@components/rich-text/PlainText";
+import ExcessContentManager from "@components/common/ExcessContentManager";
+import Avatar from "@components/layout/Avatar";
+import MediaPlayer from "@components/media/MediaPlayer";
+import LikeButton from "@components/layout/LikeButton";
 import { FaThumbsUp } from "react-icons/fa";
-import useCommentThread from "../../hooks/useCommentThread";
-import Comment from "./Comment";
+import useCommentThread from "@hooks/useCommentThread";
+import Comment from "@components/comments/Comment";
 
 const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff";
 

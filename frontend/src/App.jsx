@@ -1,13 +1,13 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import Register from "../pages/Register";
-import Login from "../pages/Login";
-import Forum from "../pages/Forum";
-import PostDetail from "../pages/PostDetail";
-import Profile from "../pages/Profile";
-import PublicProfile from "../pages/PublicProfile";
-import AudioRecorderDemo from "../pages/AudioRecorderDemo";
-import Sidebar from "../components/layout/Sidebar";
+import Register from "@pages/Register";
+import Login from "@pages/Login";
+import Forum from "@pages/Forum";
+import PostDetail from "@pages/PostDetail";
+import Profile from "@pages/Profile";
+import PublicProfile from "@pages/PublicProfile";
+import AudioRecorderDemo from "@pages/AudioRecorderDemo";
+import Sidebar from "@components/layout/Sidebar";
 
 // Layout with persistent Sidebar
 function SidebarLayout() {

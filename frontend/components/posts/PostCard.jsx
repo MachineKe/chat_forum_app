@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import Button from "../layout/Button";
-import Avatar from "../layout/Avatar";
-import Card from "../layout/Card";
+import Button from "@components/layout/Button";
+import Avatar from "@components/layout/Avatar";
+import Card from "@components/layout/Card";
 import { Link, useNavigate } from "react-router-dom";
-import TiptapEditor from "../rich-text/TiptapEditor";
+import TiptapEditor from "@components/rich-text/TiptapEditor";
 import { FaRegThumbsUp, FaRegComment, FaShare } from "react-icons/fa";
 import { FiMoreHorizontal } from "react-icons/fi";
-import { redirectTo } from "../../utils/redirect";
-import LikeButton from "../layout/LikeButton";
+import { redirectTo } from "@utils/redirect";
+import LikeButton from "@components/layout/LikeButton";
 
 // Simple relative time formatter
 function getRelativeTime(dateString) {
@@ -21,9 +21,9 @@ function getRelativeTime(dateString) {
   return date.toLocaleDateString();
 }
 
-import MediaPlayer from "../media/MediaPlayer";
-import useUser from "../../hooks/useUser";
-import ExcessContentManager from "../common/ExcessContentManager";
+import MediaPlayer from "@components/media/MediaPlayer";
+import useUser from "@hooks/useUser";
+import ExcessContentManager from "@components/common/ExcessContentManager";
 
 const PostCard = ({
   id,

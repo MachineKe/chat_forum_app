@@ -3,8 +3,8 @@ require('dotenv').config();
  * Script to migrate media info from content field to media_type and media_path fields in posts table.
  * Usage: node backend/scripts/fix_post_media_fields.js
  */
-const { Post } = require('../models');
-const sequelize = require('../services/sequelize');
+const { Post } = require('@models');
+const sequelize = require('@services/sequelize');
 
 async function parseMedia(content) {
   // Patterns for audio, video, pdf

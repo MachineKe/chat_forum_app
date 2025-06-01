@@ -1,5 +1,5 @@
 import React from "react";
-import Avatar from "../layout/Avatar";
+import Avatar from "@components/layout/Avatar";
 
 const PlainText = ({ user = { name: "User", avatar: "" }, placeholder, onClick }) => {
   const avatarUrl =

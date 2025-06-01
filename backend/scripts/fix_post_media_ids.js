@@ -12,8 +12,8 @@ console.log("DB_HOST:", process.env.DB_HOST);
  * Usage: node backend/scripts/fix_post_media_ids.js
  */
 
-const { Post, Media } = require("../models");
-const sequelize = require("../services/sequelize");
+const { Post, Media } = require("@models");
+const sequelize = require("@services/sequelize");
 
 async function main() {
   try {

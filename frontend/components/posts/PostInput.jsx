@@ -1,4 +1,4 @@
-import RichMediaInput from "../common/RichMediaInput";
+import RichMediaInput from "@components/common/RichMediaInput";
 
 export default function PostInput(props) {
   return (

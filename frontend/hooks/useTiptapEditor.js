@@ -4,7 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
-import { Video, Audio, PDFEmbed } from "../components/rich-text/TiptapExtensions";
+import { Video, Audio, PDFEmbed } from "@components/rich-text/TiptapExtensions";
 
 // Helper to check for media tags in HTML
 function hasMedia(html) {

@@ -1,12 +1,12 @@
 import React from "react";
-import PostCard from "../components/posts/PostCard";
-import TiptapEditor from "../components/rich-text/TiptapEditor";
-import PostInput from "../components/posts/PostInput";
-import PostSettingsCard from "../components/posts/PostSettingsCard";
-import Sidebar from "../components/layout/Sidebar";
-import PlainText from "../components/rich-text/PlainText";
-import { MediaPlayerProvider } from "../components/media/MediaPlayerContext";
-import useForumPage from "../hooks/useForumPage";
+import PostCard from "@components/posts/PostCard";
+import TiptapEditor from "@components/rich-text/TiptapEditor";
+import PostInput from "@components/posts/PostInput";
+import PostSettingsCard from "@components/posts/PostSettingsCard";
+import Sidebar from "@components/layout/Sidebar";
+import PlainText from "@components/rich-text/PlainText";
+import { MediaPlayerProvider } from "@components/media/MediaPlayerContext";
+import useForumPage from "@hooks/useForumPage";
 
 const Forum = () => {
   const forum = useForumPage();

@@ -1,5 +1,5 @@
 import React from "react";
-import ImageProcessor from "./ImageProcessor";
+import ImageProcessor from "@components/media/ImageProcessor";
 
 const overlayStyle = {
   position: "fixed",

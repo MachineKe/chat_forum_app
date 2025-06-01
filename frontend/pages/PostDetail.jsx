@@ -1,11 +1,11 @@
 import React from "react";
-import PostCard from "../components/posts/PostCard";
-import CommentThread from "../components/comments/CommentThread";
-import CommentInput from "../components/comments/CommentInput";
-import PlainText from "../components/rich-text/PlainText";
-import TiptapEditor from "../components/rich-text/TiptapEditor";
-import BackButton from "../components/layout/BackButton";
-import usePostDetailPage from "../hooks/usePostDetailPage";
+import PostCard from "@components/posts/PostCard";
+import CommentThread from "@components/comments/CommentThread";
+import CommentInput from "@components/comments/CommentInput";
+import PlainText from "@components/rich-text/PlainText";
+import TiptapEditor from "@components/rich-text/TiptapEditor";
+import BackButton from "@components/layout/BackButton";
+import usePostDetailPage from "@hooks/usePostDetailPage";
 
 const PostDetail = () => {
   const {

@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-const postsController = require("../controllers/postsController");
+const postsController = require("@controllers/postsController");
 
 const fs = require("fs");
 

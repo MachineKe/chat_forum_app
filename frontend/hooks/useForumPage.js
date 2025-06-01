@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import useUser from "../hooks/useUser";
-import usePosts from "../hooks/usePosts";
+import useUser from "@hooks/useUser";
+import usePosts from "@hooks/usePosts";
 
 // All business logic for Forum page
 export default function useForumPage() {

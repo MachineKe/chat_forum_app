@@ -1,5 +1,5 @@
 import React from "react";
-import Avatar from "./Avatar";
+import Avatar from "@components/layout/Avatar";
 
 const PostPrompt = ({ user, onClick }) => (
   <div

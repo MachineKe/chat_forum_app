@@ -1,16 +1,16 @@
 import React from "react";
-import Card from "../layout/Card";
+import Card from "@components/layout/Card";
 import { EditorContent } from "@tiptap/react";
-import Modal from "../layout/Modal";
-import Camera from "../media/Camera";
-import AudioRecorder from "../media/AudioRecorder";
-import TiptapEditorHeader from "./TiptapEditorHeader";
-import TiptapMediaMetaInput from "./TiptapMediaMetaInput";
-import TiptapTipRow from "./TiptapTipRow";
-import TiptapToolbar from "./TiptapToolbar";
-import TiptapPostButton from "./TiptapPostButton";
-import renderMediaPreviewOnly from "./TiptapMediaPreview";
-import useTiptapEditor from "../../hooks/useTiptapEditor";
+import Modal from "@components/layout/Modal";
+import Camera from "@components/media/Camera";
+import AudioRecorder from "@components/media/AudioRecorder";
+import TiptapEditorHeader from "@components/rich-text/TiptapEditorHeader";
+import TiptapMediaMetaInput from "@components/rich-text/TiptapMediaMetaInput";
+import TiptapTipRow from "@components/rich-text/TiptapTipRow";
+import TiptapToolbar from "@components/rich-text/TiptapToolbar";
+import TiptapPostButton from "@components/rich-text/TiptapPostButton";
+import renderMediaPreviewOnly from "@components/rich-text/TiptapMediaPreview";
+import useTiptapEditor from "@hooks/useTiptapEditor";
 
 const TiptapEditor = ({
   value,

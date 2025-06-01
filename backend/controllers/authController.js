@@ -1,4 +1,4 @@
-const { User } = require("../models");
+const { User } = require("@models");
 const bcrypt = require("bcrypt");
 const { Op } = require("sequelize");
 const crypto = require("crypto");
@@ -100,7 +100,7 @@ exports.register = async (req, res) => {
   });
 
   // Send verification email
-  const { sendMail } = require("../services/mailer");
+  const { sendMail } = require("@services/mailer");
   const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${emailToken}&email=${encodeURIComponent(email)}`;
   try {
     await sendMail({
@@ -138,7 +138,7 @@ exports.getProfile = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
     // Get followers and following counts
-    const { UserFollow } = require("../models");
+    const { UserFollow } = require("@models");
     const followers = await UserFollow.count({ where: { following_id: user.id } });
     const following = await UserFollow.count({ where: { follower_id: user.id } });
 

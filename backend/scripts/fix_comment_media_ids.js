@@ -7,8 +7,8 @@ require('dotenv').config({ path: __dirname + '/../.env' });
  * Usage: node backend/scripts/fix_comment_media_ids.js
  */
 
-const { Comment, Media } = require("../models");
-const sequelize = require("../services/sequelize");
+const { Comment, Media } = require("@models");
+const sequelize = require("@services/sequelize");
 
 async function main() {
   try {

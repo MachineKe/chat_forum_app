@@ -1,9 +1,9 @@
 import React from "react";
-import ChatBubble from "../components/layout/ChatBubble";
-import Input from "../components/layout/Input";
-import Button from "../components/layout/Button";
-import Sidebar from "../components/layout/Sidebar";
-import useChatPage from "../hooks/useChatPage";
+import ChatBubble from "@components/layout/ChatBubble";
+import Input from "@components/layout/Input";
+import Button from "@components/layout/Button";
+import Sidebar from "@components/layout/Sidebar";
+import useChatPage from "@hooks/useChatPage";
 
 const Chat = () => {
   const { messages, input, setInput, sendMessage, messagesEndRef } = useChatPage();

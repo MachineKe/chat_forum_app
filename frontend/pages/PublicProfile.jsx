@@ -1,8 +1,8 @@
 import React from "react";
-import PostCard from "../components/posts/PostCard";
-import ProfileHeader from "../components/layout/ProfileHeader";
-import BackButton from "../components/layout/BackButton";
-import usePublicProfilePage from "../hooks/usePublicProfilePage";
+import PostCard from "@components/posts/PostCard";
+import ProfileHeader from "@components/layout/ProfileHeader";
+import BackButton from "@components/layout/BackButton";
+import usePublicProfilePage from "@hooks/usePublicProfilePage";
 
 const mockBanner =
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80";

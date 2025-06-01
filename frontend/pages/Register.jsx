@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import AuthLayout from "../layouts/AuthLayout";
-import Input from "../components/layout/Input";
-import Button from "../components/layout/Button";
-import { useAuth } from "../hooks/useAuth.jsx";
+import AuthLayout from "@layouts/AuthLayout";
+import Input from "@components/layout/Input";
+import Button from "@components/layout/Button";
+import { useAuth } from "@hooks/useAuth.jsx";
 
 const Register = () => {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
