@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import MediaPlayer from "./MediaPlayer";
-import Modal from "./Modal";
+import Modal from "../layout/Modal";
 import {
   MdPhotoLibrary,
   MdFlashOn,
@@ -46,6 +46,7 @@ const Camera = ({
   onClose,
   facingMode = "user",
   aspectRatio = 16 / 9,
+  standalone = true,
 }) => {
   const webcamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -194,8 +195,8 @@ const Camera = ({
     overflow: "hidden",
   };
 
-  return (
-    <Modal open={true} onClose={onClose} showClose={false}>
+  const cameraContent = (
+    <>
       {(!previewedImage && !previewedVideo) && (
         <div
           className="relative flex flex-col items-center justify-center bg-black bg-opacity-80 rounded-2xl shadow-2xl p-0"
@@ -438,8 +439,17 @@ const Camera = ({
           </div>
         </div>
       ) : null}
-    </Modal>
+    </>
   );
+
+  if (standalone) {
+    return (
+      <Modal open={true} onClose={onClose} showClose={false}>
+        {cameraContent}
+      </Modal>
+    );
+  }
+  return cameraContent;
 };
 
 export default Camera;

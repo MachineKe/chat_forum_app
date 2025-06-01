@@ -7,7 +7,7 @@ import PostDetail from "../pages/PostDetail";
 import Profile from "../pages/Profile";
 import PublicProfile from "../pages/PublicProfile";
 import AudioRecorderDemo from "../pages/AudioRecorderDemo";
-import Sidebar from "../components/Sidebar";
+import Sidebar from "../components/layout/Sidebar";
 
 // Layout with persistent Sidebar
 function SidebarLayout() {

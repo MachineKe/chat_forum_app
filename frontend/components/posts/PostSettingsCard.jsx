@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import Card from "./Card";
-import MediaPlayer from "./MediaPlayer";
+import Card from "../layout/Card";
+import MediaPlayer from "../media/MediaPlayer";
 
 function renderTextBeforeMedia(html) {
   try {

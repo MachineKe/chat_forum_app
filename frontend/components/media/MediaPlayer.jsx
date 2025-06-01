@@ -5,7 +5,7 @@ import VideoViewer from "./VideoViewer";
 import ImageViewer from "./ImageViewer";
 import DocumentViewer from "./DocumentViewer";
 import DocumentCarousel from "./DocumentCarousel";
-import { useAutoPlayMedia } from "../hooks/useAutoPlayMedia";
+import { useAutoPlayMedia } from "../../hooks/useAutoPlayMedia";
 import ImageProcessor from "./ImageProcessor";
 
 let mediaPlayerIdCounter = 0;

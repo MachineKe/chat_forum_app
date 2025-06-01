@@ -1,5 +1,5 @@
 import React from "react";
-import MediaPlayer from "./MediaPlayer";
+import MediaPlayer from "../media/MediaPlayer";
 
 // Helper to render only media nodes from Tiptap HTML
 function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {

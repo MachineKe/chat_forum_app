@@ -16,7 +16,7 @@ import { MdCheckCircle } from "react-icons/md";
 import { BsRecordCircleFill } from "react-icons/bs";
 import { MdStop } from "react-icons/md";
 import MediaPlayer from "./MediaPlayer";
-import BackButton from "./BackButton";
+import BackButton from "../layout/BackButton";
 
 /**
  * Reusable AudioRecorder component

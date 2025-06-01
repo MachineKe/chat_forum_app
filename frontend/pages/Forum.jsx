@@ -1,113 +1,15 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import PostCard from "../components/PostCard";
-import TiptapEditor from "../components/TiptapEditor";
-import PostSettingsCard from "../components/PostSettingsCard";
-import Sidebar from "../components/Sidebar";
-import Avatar from "../components/Avatar";
-import PlainText from "../components/PlainText";
-import { MediaPlayerProvider } from "../components/MediaPlayerContext";
-import useUser from "../hooks/useUser";
-import usePosts from "../hooks/usePosts";
+import React from "react";
+import PostCard from "../components/posts/PostCard";
+import TiptapEditor from "../components/rich-text/TiptapEditor";
+import PostInput from "../components/posts/PostInput";
+import PostSettingsCard from "../components/posts/PostSettingsCard";
+import Sidebar from "../components/layout/Sidebar";
+import PlainText from "../components/rich-text/PlainText";
+import { MediaPlayerProvider } from "../components/media/MediaPlayerContext";
+import useForumPage from "../hooks/useForumPage";
 
 const Forum = () => {
-  const navigate = useNavigate();
-  const [content, setContent] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
-  const [isEditorActive, setIsEditorActive] = useState(false);
-  const [mediaId, setMediaId] = useState(null);
-  const [selectedMedia, setSelectedMedia] = useState(null);
-  const [mediaType, setMediaType] = useState(null);
-  const [mediaTitle, setMediaTitle] = useState("");
-
-  // Use custom hooks for user and posts
-  const {
-    userId,
-    username,
-    firstName,
-    fullName,
-    userAvatar,
-    loading: userLoading,
-    error: userError,
-  } = useUser();
-
-  const {
-    posts,
-    loading: postsLoading,
-    error: postsError,
-    createPost,
-    setPosts,
-    loadMorePosts,
-    hasMore,
-  } = usePosts();
-
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleMediaUpload = (id, type) => {
-    setMediaId(id);
-    setMediaType(type);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    if (!userId) {
-      setError("User not loaded. Please log in again.");
-      setLoading(false);
-      return;
-    }
-    // Debug: log mediaTitle and thumbnail before sending
-    console.log("handleSubmit: mediaTitle =", mediaTitle, "thumbnail =", selectedMedia && selectedMedia.thumbnail);
-    // Use mediaTitle from state (set on Next)
-    const data = await createPost({
-      user_id: userId,
-      content,
-      media_id: mediaId || undefined,
-      media_title: mediaTitle || "",
-      thumbnail: selectedMedia && selectedMedia.thumbnail ? selectedMedia.thumbnail : undefined
-    });
-    if (!data) {
-      setError("Failed to create post");
-      setLoading(false);
-      return;
-    }
-    // Patch the new post to ensure media_title is set for PostCard
-    if (!data.media_title || data.media_title === "") {
-      data.media_title = mediaTitle || "";
-    }
-    setContent("");
-    setMediaId(null);
-    setMediaType(null);
-    setShowSettings(false);
-    setIsEditorActive(false);
-    setSelectedMedia(null);
-    // Refetch posts to ensure latest data from backend (including media_title)
-    fetch("/api/posts")
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setPosts(data);
-      });
-    setLoading(false);
-  };
-
-  // Infinite scroll: observe sentinel
-  React.useEffect(() => {
-    const sentinel = document.getElementById("load-more-sentinel");
-    if (!sentinel) return;
-    const observer = new window.IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !postsLoading) {
-          loadMorePosts();
-        }
-      },
-      { root: null, rootMargin: "0px 0px -50% 0px", threshold: 0 }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-    // eslint-disable-next-line
-  }, [hasMore, postsLoading, posts.length]);
+  const forum = useForumPage();
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
@@ -115,72 +17,74 @@ const Forum = () => {
         <div className="flex flex-col items-center w-full pt-6">
           <div className="w-full max-w-2xl mx-auto">
             {/* Post Composer */}
-            {showSettings ? (
+            {forum.showSettings ? (
               <PostSettingsCard
                 key="post-settings"
-                content={content}
+                content={forum.content}
                 media={
-                  selectedMedia
-                    ? { url: selectedMedia.src, type: selectedMedia.type, title: selectedMedia.title, thumbnail: selectedMedia.thumbnail }
+                  forum.selectedMedia
+                    ? {
+                        url: forum.selectedMedia.src,
+                        type: forum.selectedMedia.type === "pdf" ? "document" : forum.selectedMedia.type,
+                        title: forum.selectedMedia.title,
+                        thumbnail: forum.selectedMedia.thumbnail
+                      }
                     : null
                 }
-                onBack={() => setShowSettings(false)}
-                onPost={handleSubmit}
-                loading={loading}
+                media_title={forum.mediaTitle}
+                onBack={() => forum.setShowSettings(false)}
+                onPost={() => forum.handleSubmit({
+                  content: forum.content,
+                  media_id: forum.selectedMedia?.id,
+                  media_type: forum.selectedMedia?.type,
+                  media_title: forum.selectedMedia?.title,
+                  media_url: forum.selectedMedia?.src,
+                  thumbnail: forum.selectedMedia?.thumbnail
+                })}
+                loading={forum.loading}
                 user={{
-                  name: fullName || username || "User",
+                  name: forum.fullName || forum.username || "User",
                   avatar:
-                    userAvatar && userAvatar.length > 0
-                      ? userAvatar
-                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(username || "User")}&background=0D8ABC&color=fff`
+                    forum.userAvatar && forum.userAvatar.length > 0
+                      ? forum.userAvatar
+                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(forum.username || "User")}&background=0D8ABC&color=fff`
                 }}
               />
             ) : (
-              isEditorActive ? (
-                <TiptapEditor
-                  key="tiptap-editor"
-                  value={content}
-                  onChange={setContent}
-                  placeholder="What's happening?"
-                  minHeight={80}
-                  onNext={(editor, media, mediaTitleFromContent, thumbnailToSend) => {
-                    setContent(editor.getHTML());
-                    // Store thumbnail in selectedMedia for use in handleSubmit
-                    setSelectedMedia(media ? { ...media, thumbnail: thumbnailToSend } : { thumbnail: thumbnailToSend });
-                    setMediaTitle(mediaTitleFromContent || "");
-                    setShowSettings(true);
-                  }}
-                  onBlur={() => {
-                    if (!content.trim()) setIsEditorActive(false);
-                  }}
-                  onClose={() => setIsEditorActive(false)}
-                  user={{
-                    name: fullName || username || "User",
-                    avatar:
-                      userAvatar && userAvatar.length > 0
-                        ? userAvatar
-                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(username || "User")}&background=0D8ABC&color=fff`
-                  }}
-                  onMediaUpload={handleMediaUpload}
-                />
-              ) : (
-                <PlainText
-                  user={{
-                    name: firstName || username || "User",
-                    avatar:
-                      userAvatar && userAvatar.length > 0
-                        ? userAvatar
-                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(username || "User")}&background=0D8ABC&color=fff`
-                  }}
-                  placeholder={`What's on your mind${firstName ? `, ${firstName}` : ""}?`}
-                  onClick={() => setIsEditorActive(true)}
-                />
-              )
+              <PostInput
+                user={{
+                  name: forum.fullName || forum.username || "User",
+                  avatar:
+                    forum.userAvatar && forum.userAvatar.length > 0
+                      ? forum.userAvatar
+                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(forum.username || "User")}&background=0D8ABC&color=fff`
+                }}
+                onSubmit={({ content, media_id, media_type, media_title, media_src, thumbnail, reset, ...rest }) => {
+                  forum.setContent(content);
+                  forum.setSelectedMedia({
+                    id: media_id,
+                    type: media_type,
+                    src: media_src,
+                    title: media_title,
+                    thumbnail,
+                    ...rest // pass through any extra metadata (e.g. file, duration, etc.)
+                  });
+                  forum.setMediaTitle(media_title || "");
+                  forum.setMediaId(media_id);
+                  forum.setShowSettings(true);
+                  reset();
+                }}
+                placeholder="What's happening?"
+                actionLabel="Next"
+                minHeight={80}
+                autoFocus={forum.isEditorActive}
+                onCancel={() => forum.setIsEditorActive(false)}
+              />
             )}
-            {error && <div className="text-red-600 mb-2">{error}</div>}
+            {forum.error && <div className="text-red-600 mb-2">{forum.error}</div>}
             {/* Posts Feed */}
             <div className="mt-4 flex flex-col gap-4 w-full">
-              {posts.map(post => (
+              {forum.posts.map(post => (
                 <PostCard
                   key={post.id}
                   id={post.id}
@@ -194,9 +98,9 @@ const Forum = () => {
                   media={post.media}
                   media_title={post.media_title}
                   user={{
-                    full_name: fullName,
-                    username,
-                    avatar: userAvatar
+                    full_name: forum.fullName,
+                    username: forum.username,
+                    avatar: forum.userAvatar
                   }}
                 />
               ))}
@@ -204,10 +108,9 @@ const Forum = () => {
               <div
                 id="load-more-sentinel"
                 style={{ height: 300, background: "#f0f4f8" }}
-                /* Debug: Further increased height for better intersection */
               />
-              {postsLoading && <div className="text-center py-4 text-gray-500">Loading more posts...</div>}
-              {!hasMore && posts.length > 0 && (
+              {forum.postsLoading && <div className="text-center py-4 text-gray-500">Loading more posts...</div>}
+              {!forum.hasMore && forum.posts.length > 0 && (
                 <div className="text-center py-4 text-gray-400">No more posts</div>
               )}
             </div>

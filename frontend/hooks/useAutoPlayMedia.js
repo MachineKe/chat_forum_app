@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useMediaPlayerContext } from "../components/MediaPlayerContext";
+import { useMediaPlayerContext } from "../components/media/MediaPlayerContext";
 
 /**
  * useAutoPlayMedia

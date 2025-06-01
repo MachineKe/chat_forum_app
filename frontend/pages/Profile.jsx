@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Avatar from "../components/Avatar";
-import ProfileHeader from "../components/ProfileHeader";
-import Banner from "../components/Banner";
-import BackButton from "../components/BackButton";
+import Avatar from "../components/layout/Avatar";
+import ProfileHeader from "../components/layout/ProfileHeader";
+import Banner from "../components/layout/Banner";
+import BackButton from "../components/layout/BackButton";
 
 const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff";
 

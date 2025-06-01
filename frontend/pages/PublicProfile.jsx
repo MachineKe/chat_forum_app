@@ -1,67 +1,29 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import PostCard from "../components/PostCard";
-import Sidebar from "../components/Sidebar";
-import Avatar from "../components/Avatar";
-import ProfileHeader from "../components/ProfileHeader";
-import BackButton from "../components/BackButton";
+import React from "react";
+import PostCard from "../components/posts/PostCard";
+import ProfileHeader from "../components/layout/ProfileHeader";
+import BackButton from "../components/layout/BackButton";
+import usePublicProfilePage from "../hooks/usePublicProfilePage";
 
 const mockBanner =
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80";
 
 const PublicProfile = () => {
-  const { username } = useParams();
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [replies, setReplies] = useState([]);
-  const [likes, setLikes] = useState([]);
-  const [activeTab, setActiveTab] = useState("Posts");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Fetch user by username
-    fetch(`/api/auth/profile?username=${encodeURIComponent(username)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data);
-        setLoading(false);
-        if (data && data.id) {
-          // Fetch posts by user id
-          fetch(`/api/posts?user_id=${data.id}`)
-            .then((res) => res.json())
-            .then((postsData) => {
-              if (Array.isArray(postsData)) setPosts(postsData);
-            });
-          // Fetch posts user has commented on (Replies tab)
-          fetch(`/api/posts?commented_by=${encodeURIComponent(username)}`)
-            .then((res) => res.json())
-            .then((repliesData) => {
-              if (Array.isArray(repliesData)) setReplies(repliesData);
-            });
-          // Fetch liked posts by user
-          fetch(`/api/posts?liked_by=${encodeURIComponent(username)}`)
-            .then((res) => res.json())
-            .then((likesData) => {
-              if (Array.isArray(likesData)) setLikes(likesData);
-            });
-        }
-      });
-  }, [username]);
+  const {
+    user,
+    posts,
+    replies,
+    likes,
+    activeTab,
+    setActiveTab,
+    loading,
+    navigate,
+    avatar,
+    isOwnProfile,
+  } = usePublicProfilePage();
 
   if (loading || !user) {
     return <div className="p-8 text-center">Loading...</div>;
   }
-
-  // Fallbacks
-  const avatar =
-    user.avatar && user.avatar.length > 0
-      ? user.avatar.startsWith("http")
-        ? user.avatar
-        : `http://localhost:5050/${user.avatar.replace(/^\/?/, "")}`
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          user.full_name || user.username || "User"
-        )}&background=0D8ABC&color=fff`;
 
   return (
     <div className="min-h-screen bg-[#f7f9fa]">
@@ -115,16 +77,7 @@ const PublicProfile = () => {
                 },
               ].filter(Boolean)}
               onEdit={() => navigate("/profile")}
-              isOwnProfile={
-                (() => {
-                  try {
-                    const stored = JSON.parse(localStorage.getItem("user"));
-                    return stored && stored.username === user.username;
-                  } catch {
-                    return false;
-                  }
-                })()
-              }
+              isOwnProfile={isOwnProfile}
             />
           </div>
           {/* Tabs */}

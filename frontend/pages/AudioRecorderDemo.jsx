@@ -1,5 +1,5 @@
 import React from "react";
-import AudioRecorder from "../components/AudioRecorder";
+import AudioRecorder from "../components/media/AudioRecorder";
 
 const AudioRecorderDemo = () => {
   // Demo handlers

@@ -1,12 +1,13 @@
 import React from "react";
-import MainLayout from "../layouts/MainLayout";
-import ChatBubble from "../components/ChatBubble";
-import Input from "../components/Input";
-import Button from "../components/Button";
-import Sidebar from "../components/Sidebar";
+import ChatBubble from "../components/layout/ChatBubble";
+import Input from "../components/layout/Input";
+import Button from "../components/layout/Button";
+import Sidebar from "../components/layout/Sidebar";
+import useChatPage from "../hooks/useChatPage";
 
 const Chat = () => {
-  // Placeholder for chat logic and Socket.IO integration
+  const { messages, input, setInput, sendMessage, messagesEndRef } = useChatPage();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-blue-600 text-white py-4 shadow">
@@ -21,12 +22,18 @@ const Chat = () => {
         <main className="flex-1 max-w-xl w-full">
           <h2 className="text-2xl font-bold mb-4">Chat</h2>
           <div className="bg-white rounded-lg shadow p-4 mb-4 h-96 overflow-y-auto">
-            {/* Map chat messages here */}
-            <ChatBubble message="Hello! This is a sample message." isOwn={false} />
-            <ChatBubble message="Hi! This is your own message." isOwn={true} />
+            {messages.map((msg) => (
+              <ChatBubble key={msg.id} message={msg.text} isOwn={msg.isOwn} />
+            ))}
+            <div ref={messagesEndRef} />
           </div>
-          <form className="flex space-x-2">
-            <Input placeholder="Type your message..." className="flex-1" />
+          <form className="flex space-x-2" onSubmit={sendMessage}>
+            <Input
+              placeholder="Type your message..."
+              className="flex-1"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+            />
             <Button type="submit">Send</Button>
           </form>
         </main>
