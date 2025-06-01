@@ -222,7 +222,17 @@ const MediaPlayer = ({
             onClick={() => setViewerOpen(true)}
             {...rest}
           />
-          <ImageViewer src={src} alt={alt} open={viewerOpen} onClose={() => setViewerOpen(false)} />
+          <ImageViewer
+            src={src}
+            alt={alt}
+            open={viewerOpen}
+            onClose={() => setViewerOpen(false)}
+            style={{
+              borderRadius: 8,
+              borderTopLeftRadius: mediaTitle ? 0 : 8,
+              borderTopRightRadius: mediaTitle ? 0 : 8,
+            }}
+          />
         </>
       )}
       {mediaType === "document" && (

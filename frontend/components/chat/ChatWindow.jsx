@@ -64,14 +64,23 @@ const ChatWindow = ({
               )}
               <div className="flex flex-col items-start max-w-md w-full">
                 {showMedia && (
-                  <div className="w-full mb-2">
+                  <div className="w-full mb-2 px-4 pt-2">
                     <MediaPlayer
                       src={msg.media_path || msg.media_src}
                       type={msg.media_type}
                       title={msg.media_title}
                       thumbnail={msg.thumbnail}
                       className="rounded-xl"
-                      style={{ width: "100%", maxWidth: 420, minWidth: 180, minHeight: 80 }}
+                      style={{
+                        maxWidth: "100%",
+                        width: "100%",
+                        minWidth: 180,
+                        minHeight: 80,
+                        borderRadius: 8,
+                        borderTopLeftRadius: msg.media_title ? 0 : 8,
+                        borderTopRightRadius: msg.media_title ? 0 : 8,
+                        margin: msg.media_title ? "0 0 8px 0" : "8px 0"
+                      }}
                       mini
                     />
                   </div>
