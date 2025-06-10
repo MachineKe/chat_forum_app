@@ -1,4 +1,5 @@
 import React from "react";
+import { resolveMediaUrl } from "../../utils/api";
 
 /**
  * Banner component for displaying a user's banner image.
@@ -10,7 +11,7 @@ import React from "react";
  */
 const Banner = ({ src, alt = "Banner", className = "", style = {} }) => (
   <img
-    src={src}
+    src={resolveMediaUrl(src)}
     alt={alt}
     className={`object-cover rounded ${className}`}
     style={{

@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { resolveMediaUrl } from "../../utils/api";
 
 /**
  * Avatar component for displaying user profile images.
@@ -13,7 +14,7 @@ const Avatar = ({ src, alt, size = 40, className = "", profileUrl, onAvatarClick
   const navigate = useNavigate();
   return (
     <img
-      src={src}
+      src={resolveMediaUrl(src)}
       alt={alt}
       width={size}
       height={size}

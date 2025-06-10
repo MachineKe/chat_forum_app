@@ -6,7 +6,7 @@ import { useSocket } from "./useSocket";
  * @returns {Promise<Array>} Array of user objects.
  */
 async function fetchUsers() {
-  const res = await fetch("/api/users");
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/users`);
   if (!res.ok) throw new Error("Failed to fetch users");
   return await res.json();
 }
@@ -15,7 +15,7 @@ async function fetchUsers() {
 const getUserById = (users, id) => users.find((u) => String(u.id) === String(id));
 
 // API base
-const API_URL = "/api/messages";
+const API_URL = `${import.meta.env.VITE_BACKEND_URL}/api/messages`;
 
 /**
  * Fetch messages for a conversation between two users.
@@ -62,7 +62,7 @@ export default function useChatPage(loggedInUser) {
   // For chat list with latest message preview
   const [chatListUsers, setChatListUsers] = useState([]);
   // Connect to socket server for real-time updates
-  const socket = useSocket(import.meta.env.VITE_SOCKET_URL || "http://localhost:3001");
+  const socket = useSocket(import.meta.env.VITE_SOCKET_URL);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [search, setSearch] = useState("");
   const [messages, setMessages] = useState([]);
@@ -93,7 +93,7 @@ export default function useChatPage(loggedInUser) {
   useEffect(() => {
     if (!loggedInUser?.id) return;
     let ignore = false;
-    fetch(`/api/messages/latest-per-user?user_id=${loggedInUser.id}`)
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/messages/latest-per-user?user_id=${loggedInUser.id}`)
       .then(res => res.ok ? res.json() : [])
       .then(data => {
         if (!ignore) setChatListUsers(Array.isArray(data) ? data : []);
@@ -129,7 +129,7 @@ export default function useChatPage(loggedInUser) {
     // Listen for real-time chat list updates and refresh chatListUsers
     const handleChatListUpdate = () => {
       if (!loggedInUser?.id) return;
-      fetch(`/api/messages/latest-per-user?user_id=${loggedInUser.id}`)
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/messages/latest-per-user?user_id=${loggedInUser.id}`)
         .then(res => res.ok ? res.json() : [])
         .then(data => {
           setChatListUsers(Array.isArray(data) ? data : []);

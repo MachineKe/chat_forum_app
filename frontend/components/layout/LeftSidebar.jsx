@@ -13,7 +13,7 @@ const LeftSidebar = ({
 }) => {
   const navigate = useNavigate();
   // Get user from localStorage (safe fallback)
-  let user = { full_name: "Mark Kiprotich", username: "mark_kiprotich_", avatar: "" };
+  let user = { full_name: "Guest", username: "guest", avatar: "" };
   try {
     const stored = JSON.parse(localStorage.getItem("user"));
     if (stored) {

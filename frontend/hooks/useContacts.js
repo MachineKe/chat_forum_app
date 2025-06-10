@@ -9,12 +9,12 @@ import { useSocket } from "./useSocket";
 export default function useContacts(loggedInUser) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const socket = useSocket(import.meta.env.VITE_SOCKET_URL || "http://localhost:3001");
+  const socket = useSocket(import.meta.env.VITE_SOCKET_URL);
 
   useEffect(() => {
     let ignore = false;
     setLoading(true);
-    fetch("/api/users")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/users`)
       .then(res => res.ok ? res.json() : [])
       .then(data => {
         if (!ignore) {

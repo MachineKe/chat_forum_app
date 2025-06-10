@@ -74,7 +74,7 @@ const TiptapMediaMetaInput = ({
                   const formData = new FormData();
                   formData.append("thumbnail", file);
                   formData.append("media_url", selectedMedia.src);
-                  const res = await fetch("/api/posts/upload-thumbnail", {
+                  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-thumbnail`, {
                     method: "POST",
                     body: formData,
                   });
@@ -164,7 +164,7 @@ const TiptapMediaMetaInput = ({
                   const formData = new FormData();
                   formData.append("thumbnail", file);
                   formData.append("media_url", selectedMedia.src);
-                  const res = await fetch("/api/posts/upload-thumbnail", {
+                  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-thumbnail`, {
                     method: "POST",
                     body: formData,
                   });

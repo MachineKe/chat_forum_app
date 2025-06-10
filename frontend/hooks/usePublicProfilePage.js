@@ -15,26 +15,26 @@ export default function usePublicProfilePage() {
   useEffect(() => {
     setLoading(true);
     // Fetch user by username
-    fetch(`/api/auth/profile?username=${encodeURIComponent(username)}`)
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/profile?username=${encodeURIComponent(username)}`)
       .then((res) => res.json())
       .then((data) => {
         setUser(data);
         setLoading(false);
         if (data && data.id) {
           // Fetch posts by user id
-          fetch(`/api/posts?user_id=${data.id}`)
+          fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts?user_id=${data.id}`)
             .then((res) => res.json())
             .then((postsData) => {
               if (Array.isArray(postsData)) setPosts(postsData);
             });
           // Fetch posts user has commented on (Replies tab)
-          fetch(`/api/posts?commented_by=${encodeURIComponent(username)}`)
+          fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts?commented_by=${encodeURIComponent(username)}`)
             .then((res) => res.json())
             .then((repliesData) => {
               if (Array.isArray(repliesData)) setReplies(repliesData);
             });
           // Fetch liked posts by user
-          fetch(`/api/posts?liked_by=${encodeURIComponent(username)}`)
+          fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts?liked_by=${encodeURIComponent(username)}`)
             .then((res) => res.json())
             .then((likesData) => {
               if (Array.isArray(likesData)) setLikes(likesData);
@@ -48,7 +48,7 @@ export default function usePublicProfilePage() {
     user && user.avatar && user.avatar.length > 0
       ? user.avatar.startsWith("http")
         ? user.avatar
-        : `http://localhost:5050/${user.avatar.replace(/^\/?/, "")}`
+        : `${import.meta.env.VITE_BACKEND_URL}/${user.avatar.replace(/^\/?/, "")}`
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(
           (user && (user.full_name || user.username)) || "User"
         )}&background=0D8ABC&color=fff`;

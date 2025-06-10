@@ -7,6 +7,7 @@ import DocumentViewer from "./DocumentViewer";
 import DocumentCarousel from "./DocumentCarousel";
 import { useAutoPlayMedia } from "../../hooks/useAutoPlayMedia";
 import ImageProcessor from "./ImageProcessor";
+import { resolveMediaUrl } from "../../utils/api";
 
 let mediaPlayerIdCounter = 0;
 function getUniqueMediaPlayerId() {
@@ -15,11 +16,11 @@ function getUniqueMediaPlayerId() {
 
 function getMediaType(src, type) {
   // Force audio if path is in /uploads/audio/
-  if (src && typeof src === "string" && src.startsWith("/uploads/audio/")) {
+  if (src && typeof src === "string" && src.startsWith(`${import.meta.env.VITE_BACKEND_URL}/uploads/audio/`)) {
     return "audio";
   }
   // Force video if path is in /uploads/videos/
-  if (src && typeof src === "string" && src.startsWith("/uploads/videos/")) {
+  if (src && typeof src === "string" && src.startsWith(`${import.meta.env.VITE_BACKEND_URL}/uploads/videos/`)) {
     return "video";
   }
   // Special case: .webm can be video or audio, use type to decide
@@ -80,9 +81,9 @@ const MediaPlayer = ({
   // Prefer explicit thumbnail prop, else from media object
   const mediaThumbnail =
     typeof thumbnail !== "undefined"
-      ? thumbnail
+      ? resolveMediaUrl(thumbnail)
       : media && media.thumbnail
-      ? media.thumbnail
+      ? resolveMediaUrl(media.thumbnail)
       : undefined;
 
   // Debug: log thumbnail prop and resolved mediaThumbnail

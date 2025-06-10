@@ -17,13 +17,13 @@ export default function usePostDetailPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/posts/${id}`)
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}`)
       .then(res => res.json())
       .then(data => {
         setPost(data);
         setLoading(false);
       });
-    fetch(`/api/posts/${id}/comments`)
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/comments`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setComments(data);
@@ -48,7 +48,7 @@ export default function usePostDetailPage() {
     }
     let userId = null;
     try {
-      const res = await fetch(`/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`);
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`);
       const data = await res.json();
       if (data && data.id) {
         userId = data.id;
@@ -69,7 +69,7 @@ export default function usePostDetailPage() {
       }
     }
     try {
-      const res = await fetch(`/api/posts/${id}/comments`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -104,7 +104,7 @@ export default function usePostDetailPage() {
     }
     let userId = null;
     try {
-      const res = await fetch(`/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`);
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`);
       const data = await res.json();
       if (data && data.id) {
         userId = data.id;
@@ -128,7 +128,7 @@ export default function usePostDetailPage() {
         media_type: mediaType || undefined
       };
       console.log("DEBUG: handleCommentReply payload", payload);
-      const res = await fetch(`/api/posts/${id}/comments`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -144,7 +144,7 @@ export default function usePostDetailPage() {
   }
 
   function fetchComments() {
-    fetch(`/api/posts/${id}/comments`)
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/comments`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setComments(data);

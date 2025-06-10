@@ -72,7 +72,7 @@ const Comment = ({
   React.useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     const userId = user?.id;
-    fetch(`/api/comments/${comment.id}/likes${userId ? `?user_id=${userId}` : ""}`)
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/comments/${comment.id}/likes${userId ? `?user_id=${userId}` : ""}`)
       .then(res => res.json())
       .then(data => {
         setLikeCount(data.count || 0);
@@ -89,7 +89,7 @@ const Comment = ({
     }
     setLikeLoading(true);
     try {
-      const res = await fetch(`/api/comments/${comment.id}/like`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/comments/${comment.id}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId }),

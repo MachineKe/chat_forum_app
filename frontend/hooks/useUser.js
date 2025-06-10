@@ -16,7 +16,7 @@ export default function useUser() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (user && user.email) {
-      fetch(`/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`)
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.id) {
@@ -24,7 +24,7 @@ export default function useUser() {
             setUsername(data.username || data.email);
             let avatarUrl = data.avatar || "";
             if (avatarUrl && !avatarUrl.startsWith("http")) {
-              avatarUrl = `http://localhost:5050/${avatarUrl.replace(/^\/?/, "")}`;
+              avatarUrl = `${import.meta.env.VITE_BACKEND_URL}/${avatarUrl.replace(/^\/?/, "")}`;
             }
             setUserAvatar(avatarUrl);
             if (data.full_name) {

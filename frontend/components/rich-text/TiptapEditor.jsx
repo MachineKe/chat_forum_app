@@ -371,7 +371,7 @@ const TiptapEditor = ({
               try {
                 const formData = new FormData();
                 formData.append("media", blob, "recorded-audio.webm");
-                const res = await fetch("/api/posts/upload-media", {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-media`, {
                   method: "POST",
                   body: formData,
                 });
@@ -522,7 +522,7 @@ const TiptapEditor = ({
               try {
                 const formData = new FormData();
                 formData.append("media", blob, "recorded-audio.webm");
-                const res = await fetch("/api/posts/upload-media", {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-media`, {
                   method: "POST",
                   body: formData,
                 });

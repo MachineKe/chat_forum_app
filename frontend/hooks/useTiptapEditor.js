@@ -196,7 +196,7 @@ export default function useTiptapEditor({
     try {
       const formData = new FormData();
       formData.append("media", file);
-      const res = await fetch("/api/posts/upload-media", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-media`, {
         method: "POST",
         body: formData,
       });
@@ -243,7 +243,7 @@ export default function useTiptapEditor({
     try {
       const formData = new FormData();
       formData.append("media", file);
-      const res = await fetch("/api/posts/upload-media", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-media`, {
         method: "POST",
         body: formData,
       });

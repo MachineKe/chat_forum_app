@@ -6,6 +6,7 @@ import Button from "../layout/Button";
 import { FiPaperclip, FiMic, FiSend } from "react-icons/fi";
 import RichMediaInputMini from "../common/RichMediaInputMini";
 import MediaPlayer from "../media/MediaPlayer";
+import { resolveMediaUrl } from "../../utils/api";
 
 const ChatWindow = ({
   user,
@@ -66,7 +67,7 @@ const ChatWindow = ({
                 {showMedia && (
                   <div className="w-full mb-2 px-4 pt-2">
                     <MediaPlayer
-                      src={msg.media_path || msg.media_src}
+                      src={resolveMediaUrl(msg.media_path || msg.media_src)}
                       type={msg.media_type}
                       title={msg.media_title}
                       thumbnail={msg.thumbnail}

@@ -87,7 +87,7 @@ export default function useForumPage() {
     setIsEditorActive(false);
     setSelectedMedia(null);
     // Refetch posts to ensure latest data from backend (including media_title)
-    fetch("/api/posts")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setPosts(data);

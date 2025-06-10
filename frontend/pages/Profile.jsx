@@ -27,7 +27,7 @@ const Profile = () => {
     const stored = JSON.parse(localStorage.getItem("user"));
     const email = stored?.email;
     if (email) {
-      fetch(`/api/auth/profile?email=${encodeURIComponent(email)}`)
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/profile?email=${encodeURIComponent(email)}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.id) {
@@ -59,7 +59,7 @@ const Profile = () => {
       const formData = new FormData();
       formData.append("avatar", file);
       try {
-        const res = await fetch("/api/auth/upload-avatar", {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/upload-avatar`, {
           method: "POST",
           body: formData,
         });
@@ -83,7 +83,7 @@ const Profile = () => {
       const formData = new FormData();
       formData.append("banner", file);
       try {
-        const res = await fetch("/api/auth/upload-banner", {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/upload-banner`, {
           method: "POST",
           body: formData,
         });
@@ -108,7 +108,7 @@ const Profile = () => {
     try {
       // Use user.id from state
       const user_id = user.id;
-      const res = await fetch("/api/auth/profile", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -19,7 +19,7 @@ export default function usePosts() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/posts?limit=${limit}&offset=${offset}`);
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts?limit=${limit}&offset=${offset}`);
       const data = await res.json();
       if (!Array.isArray(data)) {
         setError("Failed to fetch posts");
@@ -51,7 +51,7 @@ export default function usePosts() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/posts", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

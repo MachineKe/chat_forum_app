@@ -22,6 +22,7 @@ function getRelativeTime(dateString) {
 }
 
 import MediaPlayer from "@components/media/MediaPlayer";
+import { resolveMediaUrl } from "@utils/api";
 import useUser from "@hooks/useUser";
 import ExcessContentManager from "@components/common/ExcessContentManager";
 
@@ -64,7 +65,7 @@ const PostCard = ({
         entries.forEach((entry) => {
           if (entry.isIntersecting && !hasCountedView.current) {
             hasCountedView.current = true;
-            fetch(`/api/posts/${id}/view`, { method: "POST" })
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/view`, { method: "POST" })
               .then(res => res.json())
               .then(data => {
                 if (typeof data.viewCount === "number") setLocalViewCount(data.viewCount);
@@ -88,15 +89,20 @@ const PostCard = ({
     propAuthor ||
     (user && (user.full_name || user.username)) ||
     "User";
-  const avatar =
-    propAvatar ||
-    (user && user.avatar && user.avatar.length > 0
-      ? user.avatar.startsWith("http")
-        ? user.avatar
-        : `http://localhost:5050/${user.avatar.replace(/^\/?/, "")}`
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          (user && (user.full_name || user.username)) || "User"
-        )}&background=0D8ABC&color=fff`);
+  // Robust avatar resolution: handles string, object, or fallback
+  let avatar = propAvatar;
+  if (!avatar && user && user.avatar) {
+    if (typeof user.avatar === "string" && user.avatar.length > 0) {
+      avatar = resolveMediaUrl(user.avatar);
+    } else if (typeof user.avatar === "object" && user.avatar.url) {
+      avatar = resolveMediaUrl(user.avatar.url);
+    }
+  }
+  if (!avatar) {
+    avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      (user && (user.full_name || user.username)) || "User"
+    )}&background=0D8ABC&color=fff`;
+  }
   const media = propMedia;
   const media_type = propMediaType || (media && (media.media_type || media.mediaType || media.type));
   const media_path =
@@ -107,14 +113,14 @@ const PostCard = ({
   useEffect(() => {
     // Fetch like count and liked status
     if (userId) {
-      fetch(`/api/posts/${id}/likes?user_id=${userId}`)
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/likes?user_id=${userId}`)
         .then(res => res.json())
         .then(data => {
           setLikeCount(data.count || 0);
           setLiked(!!data.liked);
         });
     } else {
-      fetch(`/api/posts/${id}/likes`)
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/likes`)
         .then(res => res.json())
         .then(data => {
           setLikeCount(data.count || 0);
@@ -125,7 +131,7 @@ const PostCard = ({
 
   useEffect(() => {
     if (showComments) {
-      fetch(`/api/posts/${id}/comments`)
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/comments`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) setComments(data);
@@ -154,7 +160,7 @@ const PostCard = ({
     let userId = null;
     let username = "";
     try {
-      const res = await fetch(`/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`);
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`);
       const data = await res.json();
       if (data && data.id) {
         userId = data.id;
@@ -176,7 +182,7 @@ const PostCard = ({
     }
     // Post comment
     try {
-      const res = await fetch(`/api/posts/${id}/comments`, {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -194,7 +200,7 @@ const PostCard = ({
         return;
       }
       // Refetch comments after adding a new comment or reply to ensure correct nesting
-      fetch(`/api/posts/${id}/comments`)
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/comments`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) setComments(data);
@@ -217,13 +223,13 @@ const PostCard = ({
     }
     setLikeLoading(true);
     try {
-      await fetch(`/api/posts/${id}/like`, {
+      await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId }),
       });
       // Always fetch the latest like count and liked status after toggling
-      const res2 = await fetch(`/api/posts/${id}/likes?user_id=${userId}`);
+      const res2 = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/${id}/likes?user_id=${userId}`);
       const data2 = await res2.json();
       setLikeCount(data2.count || 0);
       setLiked(!!data2.liked);
@@ -373,7 +379,7 @@ const PostCard = ({
               }
             >
               <MediaPlayer
-                src={src}
+                src={resolveMediaUrl(src)}
                 type={type}
                 title={title}
                 thumbnail={thumbnail}
@@ -647,7 +653,7 @@ function renderTextBeforeMedia(content, media_title, media_type, suppressAudio) 
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="image"
               title={media_title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
@@ -659,7 +665,7 @@ function renderTextBeforeMedia(content, media_title, media_type, suppressAudio) 
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="video"
               title={media_title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
@@ -671,7 +677,7 @@ function renderTextBeforeMedia(content, media_title, media_type, suppressAudio) 
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="audio"
               title={media_title}
               thumbnail={media && media.thumbnail ? media.thumbnail : undefined}
@@ -689,7 +695,7 @@ function renderTextBeforeMedia(content, media_title, media_type, suppressAudio) 
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type={type === "application/pdf" ? "pdf" : "document"}
               title={media_title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
