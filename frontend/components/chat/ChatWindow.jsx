@@ -57,7 +57,7 @@ const ChatWindow = ({
             <div key={msg.id} className={`mb-6 flex ${isOwn ? "justify-end" : "justify-start"}`}>
               {!isOwn && (
                 <img
-                  src={user?.avatar || ""}
+                  src={resolveMediaUrl(user?.avatar || "")}
                   alt={user?.full_name || user?.name || "User"}
                   className="w-10 h-10 rounded-full object-cover mr-4 mt-1 flex-shrink-0"
                   style={{ alignSelf: "flex-start" }}
