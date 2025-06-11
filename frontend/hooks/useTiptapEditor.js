@@ -5,6 +5,7 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
 import { Video, Audio, PDFEmbed } from "@components/rich-text/TiptapExtensions";
+import useMediaUpload from "@hooks/useMediaUpload";
 
 // Helper to check for media tags in HTML
 function hasMedia(html) {
@@ -185,6 +186,9 @@ export default function useTiptapEditor({
 
   // All handlers (file uploads, camera, etc.) should be defined here and returned
 
+  // Media upload hook
+  const { uploadMedia, loading: uploadLoading, error: uploadError, retry: retryUpload } = useMediaUpload();
+
   // Handle file input for media (image/video)
   async function handleFileChange(file) {
     if (!file) return;
@@ -193,18 +197,11 @@ export default function useTiptapEditor({
     // Upload file to backend and get permanent URL
     let uploadedUrl = null;
     let uploadedId = null;
-    try {
-      const formData = new FormData();
-      formData.append("media", file);
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-media`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      uploadedUrl = data.url; // expects { url: "https://..." }
-      uploadedId = data.id;   // expects { id: ... }
-    } catch (err) {
+    let uploadResult = await uploadMedia(file);
+    if (uploadResult && uploadResult.url && uploadResult.id) {
+      uploadedUrl = uploadResult.url;
+      uploadedId = uploadResult.id;
+    } else {
       // fallback to blob url if upload fails
       uploadedUrl = URL.createObjectURL(file);
       uploadedId = null;
@@ -220,7 +217,8 @@ export default function useTiptapEditor({
     if (typeof onMediaUpload === "function") {
       onMediaUpload(uploadedId, type, uploadedUrl, file.name);
     }
-    setMediaModalOpen(false);
+    // Only close modal if upload succeeded
+    if (uploadedId) setMediaModalOpen(false);
 
     // Insert media into the editor
     if (editor) {
@@ -240,18 +238,11 @@ export default function useTiptapEditor({
     // Upload file to backend and get permanent URL
     let uploadedUrl = null;
     let uploadedId = null;
-    try {
-      const formData = new FormData();
-      formData.append("media", file);
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-media`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      uploadedUrl = data.url;
-      uploadedId = data.id;
-    } catch (err) {
+    let uploadResult = await uploadMedia(file);
+    if (uploadResult && uploadResult.url && uploadResult.id) {
+      uploadedUrl = uploadResult.url;
+      uploadedId = uploadResult.id;
+    } else {
       // fallback to blob url if upload fails
       uploadedUrl = URL.createObjectURL(file);
       uploadedId = null;
@@ -267,7 +258,8 @@ export default function useTiptapEditor({
     if (typeof onMediaUpload === "function") {
       onMediaUpload(uploadedId, type, uploadedUrl, file.name);
     }
-    setAttachmentModalOpen(false);
+    // Only close modal if upload succeeded
+    if (uploadedId) setAttachmentModalOpen(false);
 
     // Insert media into the editor
     if (editor) {
@@ -321,5 +313,8 @@ export default function useTiptapEditor({
     handleFileChange,
     handleAttachmentFileChange,
     handleAudioRecordingSelect,
+    uploadLoading,
+    uploadError,
+    retryUpload,
   };
 }

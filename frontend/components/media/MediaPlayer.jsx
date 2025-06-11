@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import LoadingSpinner from "@components/common/LoadingSpinner";
 import VideoPlayer from "./VideoPlayer";
 import AudioPlayer from "./AudioPlayer";
 import VideoViewer from "./VideoViewer";
@@ -129,125 +130,283 @@ const MediaPlayer = ({
     <div>
       <TitlePane />
       {mediaType === "video" && (
-        <>
-          <div
-            ref={containerRef}
-            style={{
-              width: "100%",
-              aspectRatio: "16/9",
-              background: "#000",
-              borderRadius: 8,
-              overflow: "hidden",
-              position: "relative",
-              ...(mediaTitle ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 } : {})
-            }}
-          >
-            <VideoPlayer
-              ref={mediaRef}
-              src={src}
-              poster={mediaThumbnail || poster}
-              controls={controls}
-              autoPlay={typeof rest.autoPlay !== "undefined" ? rest.autoPlay : autoPlay}
-              loop={loop}
-              muted={typeof rest.muted !== "undefined" ? rest.muted : false}
-              className={className}
-              style={{ ...mergedStyle, width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
-              videoId={idRef.current}
-              onClick={() => setViewerOpen(true)}
-              onPlay={handlePlay}
-              onLoadedData={onMediaLoaded}
-              {...rest}
-            />
-          </div>
-          <VideoViewer src={src} open={viewerOpen} onClose={() => setViewerOpen(false)} poster={mediaThumbnail || poster} />
-        </>
+        (() => {
+          const [isLoading, setIsLoading] = useState(true);
+          const [hasError, setHasError] = useState(false);
+          return (
+            <>
+              <div
+                ref={containerRef}
+                style={{
+                  width: "100%",
+                  aspectRatio: "16/9",
+                  background: "#000",
+                  borderRadius: 8,
+                  overflow: "hidden",
+                  position: "relative",
+                  ...(mediaTitle ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 } : {})
+                }}
+              >
+                {isLoading && !hasError && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      zIndex: 2,
+                      background: "rgba(0,0,0,0)",
+                    }}
+                  >
+                    <LoadingSpinner label="Loading video..." />
+                  </div>
+                )}
+                {hasError && (
+                  <div className="text-red-500 text-sm">Failed to load video</div>
+                )}
+                <VideoPlayer
+                  ref={mediaRef}
+                  src={src}
+                  poster={mediaThumbnail || poster}
+                  controls={controls}
+                  autoPlay={typeof rest.autoPlay !== "undefined" ? rest.autoPlay : autoPlay}
+                  loop={loop}
+                  muted={typeof rest.muted !== "undefined" ? rest.muted : false}
+                  className={className}
+                  style={{
+                    ...mergedStyle,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    display: isLoading ? "none" : undefined,
+                  }}
+                  videoId={idRef.current}
+                  onClick={() => setViewerOpen(true)}
+                  onPlay={handlePlay}
+                  onLoadedData={e => {
+                    setIsLoading(false);
+                    setHasError(false);
+                    if (onMediaLoaded) onMediaLoaded(e);
+                  }}
+                  onError={() => {
+                    setIsLoading(false);
+                    setHasError(true);
+                  }}
+                  {...rest}
+                />
+              </div>
+              <VideoViewer src={src} open={viewerOpen} onClose={() => setViewerOpen(false)} poster={mediaThumbnail || poster} />
+            </>
+          );
+        })()
       )}
       {mediaType === "audio" && (
-        <div
-          ref={containerRef}
-          style={{
-            width: "100%",
-            marginTop: 0,
-            paddingTop: 0,
-            borderTop: "none",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "stretch",
-            justifyContent: "flex-start",
-            gap: 0,
-            background: "transparent",
-            minHeight: "unset",
-            height: "auto",
-          }}
-        >
-          <AudioPlayer
-            ref={mediaRef}
-            src={src}
-            controls={controls}
-            autoPlay={false}
-            loop={loop}
-            muted={false}
-            className={className}
-            style={{
-              ...mergedStyle,
-              width: "100%",
-              marginTop: 0,
-              paddingTop: 0,
-              borderTop: "none",
-              borderRadius: 8,
-              borderTopLeftRadius: mediaTitle ? 0 : 8,
-              borderTopRightRadius: mediaTitle ? 0 : 8,
-              minHeight: 0,
-              height: "auto",
-            }}
-            onPlay={handlePlay}
-            thumbnail={mediaThumbnail}
-            title={mediaTitle}
-            onLoadedData={onMediaLoaded}
-            {...rest}
-          />
-        </div>
+        (() => {
+          const [isLoading, setIsLoading] = useState(true);
+          const [hasError, setHasError] = useState(false);
+          return (
+            <div
+              ref={containerRef}
+              style={{
+                width: "100%",
+                marginTop: 0,
+                paddingTop: 0,
+                borderTop: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                justifyContent: "flex-start",
+                gap: 0,
+                background: "transparent",
+                minHeight: "unset",
+                height: "auto",
+              }}
+            >
+              {isLoading && !hasError && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 2,
+                    background: "rgba(0,0,0,0)",
+                  }}
+                >
+                  <LoadingSpinner label="Loading audio..." />
+                </div>
+              )}
+              {hasError && (
+                <div className="text-red-500 text-sm">Failed to load audio</div>
+              )}
+              <AudioPlayer
+                ref={mediaRef}
+                src={src}
+                controls={controls}
+                autoPlay={false}
+                loop={loop}
+                muted={false}
+                className={className}
+                style={{
+                  ...mergedStyle,
+                  width: "100%",
+                  marginTop: 0,
+                  paddingTop: 0,
+                  borderTop: "none",
+                  borderRadius: 8,
+                  borderTopLeftRadius: mediaTitle ? 0 : 8,
+                  borderTopRightRadius: mediaTitle ? 0 : 8,
+                  minHeight: 0,
+                  height: "auto",
+                  display: isLoading ? "none" : undefined,
+                }}
+                onPlay={handlePlay}
+                thumbnail={mediaThumbnail}
+                title={mediaTitle}
+                onLoadedData={e => {
+                  setIsLoading(false);
+                  setHasError(false);
+                  if (onMediaLoaded) onMediaLoaded(e);
+                }}
+                onError={() => {
+                  setIsLoading(false);
+                  setHasError(true);
+                }}
+                {...rest}
+              />
+            </div>
+          );
+        })()
       )}
       {mediaType === "image" && (
-        <>
-          <ImageProcessor
-            src={src}
-            alt={alt}
-            className={className}
-            style={{
-              ...mergedStyle,
-              cursor: "pointer",
-              borderRadius: 8,
-              borderTopLeftRadius: mediaTitle ? 0 : 8,
-              borderTopRightRadius: mediaTitle ? 0 : 8,
-              marginTop: 0,
-              paddingTop: 0,
-            }}
-            onClick={() => setViewerOpen(true)}
-            onLoad={onMediaLoaded}
-            {...rest}
-          />
-          <ImageViewer
-            src={src}
-            alt={alt}
-            open={viewerOpen}
-            onClose={() => setViewerOpen(false)}
-            style={{
-              borderRadius: 8,
-              borderTopLeftRadius: mediaTitle ? 0 : 8,
-              borderTopRightRadius: mediaTitle ? 0 : 8,
-            }}
-          />
-        </>
+        (() => {
+          const [isLoading, setIsLoading] = useState(true);
+          const [hasError, setHasError] = useState(false);
+          return (
+            <>
+              <div style={{ position: "relative", display: "inline-block", width: "100%" }}>
+                {isLoading && !hasError && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      zIndex: 2,
+                      background: "rgba(0,0,0,0)",
+                    }}
+                  >
+                    <LoadingSpinner label="Loading image..." />
+                  </div>
+                )}
+                {hasError && (
+                  <div className="text-red-500 text-sm">Failed to load image</div>
+                )}
+                <ImageProcessor
+                  src={src}
+                  alt={alt}
+                  className={className}
+                  style={{
+                    ...mergedStyle,
+                    cursor: "pointer",
+                    borderRadius: 8,
+                    borderTopLeftRadius: mediaTitle ? 0 : 8,
+                    borderTopRightRadius: mediaTitle ? 0 : 8,
+                    marginTop: 0,
+                    paddingTop: 0,
+                    display: isLoading ? "none" : undefined,
+                  }}
+                  onClick={() => setViewerOpen(true)}
+                  onLoad={e => {
+                    setIsLoading(false);
+                    setHasError(false);
+                    if (onMediaLoaded) onMediaLoaded(e);
+                  }}
+                  onError={() => {
+                    setIsLoading(false);
+                    setHasError(true);
+                  }}
+                  {...rest}
+                />
+              </div>
+              <ImageViewer
+                src={src}
+                alt={alt}
+                open={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                style={{
+                  borderRadius: 8,
+                  borderTopLeftRadius: mediaTitle ? 0 : 8,
+                  borderTopRightRadius: mediaTitle ? 0 : 8,
+                }}
+              />
+            </>
+          );
+        })()
       )}
       {mediaType === "document" && (
-        <DocumentCarousel
-          src={src}
-          type="application/pdf"
-          className={className}
-          style={mergedStyle}
-          {...rest}
-        />
+        (() => {
+          const [isLoading, setIsLoading] = useState(true);
+          const [hasError, setHasError] = useState(false);
+          return (
+            <div style={{ position: "relative", width: "100%" }}>
+              {isLoading && !hasError && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 2,
+                    background: "rgba(0,0,0,0)",
+                  }}
+                >
+                  <LoadingSpinner label="Loading PDF..." />
+                </div>
+              )}
+              {hasError && (
+                <div className="text-red-500 text-sm">Failed to load PDF</div>
+              )}
+              <DocumentCarousel
+                src={src}
+                type="application/pdf"
+                className={className}
+                style={{
+                  ...mergedStyle,
+                  display: isLoading ? "none" : undefined,
+                }}
+                onLoad={() => {
+                  setIsLoading(false);
+                  setHasError(false);
+                }}
+                onError={() => {
+                  setIsLoading(false);
+                  setHasError(true);
+                }}
+                {...rest}
+              />
+            </div>
+          );
+        })()
       )}
       {mediaType === "unknown" && <span>Unsupported media type</span>}
     </div>
