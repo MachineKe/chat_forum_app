@@ -101,7 +101,7 @@ exports.register = async (req, res) => {
 
   // Send verification email
   const { sendMail } = require("@services/mailer");
-  const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${emailToken}&email=${encodeURIComponent(email)}`;
+  const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${emailToken}&email=${encodeURIComponent(email)}`;
   try {
     await sendMail({
       to: email,
