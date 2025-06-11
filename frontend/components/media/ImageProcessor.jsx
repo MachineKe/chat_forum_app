@@ -49,6 +49,7 @@ const ImageProcessor = ({
           alt={alt}
           className="absolute inset-0 w-full h-full object-cover"
           style={{ objectFit: "cover" }}
+          onLoad={props.onLoad}
         />
       </div>
     );
@@ -61,6 +62,7 @@ const ImageProcessor = ({
       alt={alt}
       className={`w-full h-full object-cover ${className}`}
       style={{ objectFit: "cover", ...style }}
+      onLoad={props.onLoad}
       {...safeProps}
     />
   );

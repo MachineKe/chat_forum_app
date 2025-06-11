@@ -9,7 +9,8 @@ const VideoPlayer = forwardRef(({
   className = "",
   style = {},
   videoId,
-  onClick
+  onClick,
+  onLoadedData
 }, ref) => {
   const videoRef = ref || useRef();
 
@@ -28,6 +29,7 @@ const VideoPlayer = forwardRef(({
       playsInline
       muted={true}
       onClick={onClick}
+      onLoadedData={onLoadedData}
     >
       Your browser does not support the video tag.
     </video>

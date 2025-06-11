@@ -68,6 +68,7 @@ const MediaPlayer = ({
   title,
   media, // NEW: allow passing a media object directly
   thumbnail, // NEW: thumbnail for audio/video
+  onMediaLoaded, // NEW: callback when media is loaded
   ...rest
 }) => {
   // Always use the latest title prop (do not store in state)
@@ -154,6 +155,7 @@ const MediaPlayer = ({
               videoId={idRef.current}
               onClick={() => setViewerOpen(true)}
               onPlay={handlePlay}
+              onLoadedData={onMediaLoaded}
               {...rest}
             />
           </div>
@@ -201,6 +203,7 @@ const MediaPlayer = ({
             onPlay={handlePlay}
             thumbnail={mediaThumbnail}
             title={mediaTitle}
+            onLoadedData={onMediaLoaded}
             {...rest}
           />
         </div>
@@ -221,6 +224,7 @@ const MediaPlayer = ({
               paddingTop: 0,
             }}
             onClick={() => setViewerOpen(true)}
+            onLoad={onMediaLoaded}
             {...rest}
           />
           <ImageViewer

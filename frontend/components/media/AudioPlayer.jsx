@@ -20,6 +20,7 @@ const AudioPlayer = forwardRef(({
   barCount = 48,
   thumbnail,
   title,
+  onLoadedData,
   ...restProps
 }, ref) => {
   const localAudioRef = useRef();
@@ -347,6 +348,7 @@ const AudioPlayer = forwardRef(({
           loop={loop}
           muted={isMuted}
           style={{ display: "none" }}
+          onLoadedData={onLoadedData}
           {...audioProps}
         />
         <button
