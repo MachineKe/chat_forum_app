@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Card from "@components/layout/Card";
 import MediaPlayer from "@components/media/MediaPlayer";
+import { resolveMediaUrl } from "@utils/api";
 
 function renderTextBeforeMedia(html) {
   try {
@@ -184,7 +185,7 @@ const PostSettingsCard = ({ content, media, onBack, onPost, loading, user = { na
         {previewMedia && (
           <div className="my-4">
             <MediaPlayer
-              src={previewMedia.url}
+              src={resolveMediaUrl(previewMedia.url)}
               type={previewMedia.type}
               title={previewMedia.title}
               thumbnail={previewMedia.thumbnail}
