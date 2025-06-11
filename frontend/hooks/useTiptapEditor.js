@@ -187,7 +187,7 @@ export default function useTiptapEditor({
   // All handlers (file uploads, camera, etc.) should be defined here and returned
 
   // Media upload hook
-  const { uploadMedia, loading: uploadLoading, error: uploadError, retry: retryUpload } = useMediaUpload();
+  const { uploadMedia, loading: uploadLoading, error: uploadError, retry: retryUpload, progress: uploadProgress } = useMediaUpload();
 
   // Handle file input for media (image/video)
   async function handleFileChange(file) {
@@ -316,5 +316,6 @@ export default function useTiptapEditor({
     uploadLoading,
     uploadError,
     retryUpload,
+    uploadProgress,
   };
 }

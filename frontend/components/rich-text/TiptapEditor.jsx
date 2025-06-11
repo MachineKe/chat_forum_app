@@ -102,7 +102,7 @@ const TiptapEditor = ({
           )}
         </div>
         {/* Upload feedback for mini editor */}
-        {tiptap.uploadLoading && <LoadingSpinner />}
+        {tiptap.uploadLoading && <LoadingSpinner progress={tiptap.uploadProgress} />}
         <UploadError error={tiptap.uploadError} onRetry={tiptap.retryUpload} />
         {/* Minimal toolbar: only emoji, attach, and send */}
         <TiptapToolbar
@@ -300,7 +300,7 @@ const TiptapEditor = ({
       <Modal open={tiptap.mediaModalOpen} onClose={() => { tiptap.setMediaModalOpen(false); tiptap.setShowCamera(false); }} showClose={false}>
         <div className="p-6 rounded-lg shadow-lg min-w-[300px] flex flex-col items-center">
           <h2 className="text-lg font-semibold mb-4">Add Photo or Video</h2>
-          {tiptap.uploadLoading && <LoadingSpinner />}
+          {tiptap.uploadLoading && <LoadingSpinner progress={tiptap.uploadProgress} />}
           <UploadError error={tiptap.uploadError} onRetry={tiptap.retryUpload} />
           <input
             id="tiptap-media-file-input"
@@ -339,7 +339,7 @@ const TiptapEditor = ({
       <Modal open={tiptap.attachmentModalOpen} onClose={() => { tiptap.setAttachmentModalOpen(false); }} showClose={false}>
         <div className="p-6 rounded-lg shadow-lg min-w-[300px] flex flex-col items-center">
           <h2 className="text-lg font-semibold mb-4">Attach File (Audio, PDF, etc.)</h2>
-          {tiptap.uploadLoading && <LoadingSpinner />}
+          {tiptap.uploadLoading && <LoadingSpinner progress={tiptap.uploadProgress} />}
           <UploadError error={tiptap.uploadError} onRetry={tiptap.retryUpload} />
           <input
             id="tiptap-attachment-file-input"

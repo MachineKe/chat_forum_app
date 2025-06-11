@@ -7,12 +7,14 @@ import { useState, useCallback } from "react";
 export default function useMediaUpload() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [progress, setProgress] = useState(null);
   const [lastArgs, setLastArgs] = useState(null);
 
   // Upload function
   const uploadMedia = useCallback(async (file, extraFormData = {}) => {
     setLoading(true);
     setError(null);
+    setProgress(0);
     setLastArgs({ file, extraFormData });
     try {
       const formData = new FormData();
@@ -20,20 +22,51 @@ export default function useMediaUpload() {
       for (const [key, value] of Object.entries(extraFormData)) {
         formData.append(key, value);
       }
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-media`, {
-        method: "POST",
-        body: formData,
+      // Use XMLHttpRequest for progress
+      const xhr = new XMLHttpRequest();
+      const url = `${import.meta.env.VITE_BACKEND_URL}/api/posts/upload-media`;
+      const promise = new Promise((resolve, reject) => {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            setProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        };
+        xhr.onload = () => {
+          setLoading(false);
+          setProgress(null);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              setError(null);
+              resolve({ id: data.id, url: data.url, title: data.title, thumbnail: data.thumbnail });
+            } catch (e) {
+              setError("Upload failed (bad response)");
+              reject(new Error("Upload failed (bad response)"));
+            }
+          } else {
+            let errMsg = "Upload failed";
+            try {
+              const errData = JSON.parse(xhr.responseText);
+              errMsg = errData.error || errMsg;
+            } catch {}
+            setError(errMsg);
+            reject(new Error(errMsg));
+          }
+        };
+        xhr.onerror = () => {
+          setLoading(false);
+          setProgress(null);
+          setError("Upload failed (network error)");
+          reject(new Error("Upload failed (network error)"));
+        };
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Upload failed");
-      }
-      const data = await res.json();
-      setLoading(false);
-      setError(null);
-      return { id: data.id, url: data.url, title: data.title, thumbnail: data.thumbnail };
+      xhr.open("POST", url);
+      xhr.send(formData);
+      const result = await promise;
+      return result;
     } catch (err) {
       setLoading(false);
+      setProgress(null);
       setError(err.message || "Upload failed");
       return null;
     }
@@ -47,5 +80,5 @@ export default function useMediaUpload() {
     return null;
   }, [lastArgs, uploadMedia]);
 
-  return { uploadMedia, loading, error, retry };
+  return { uploadMedia, loading, error, retry, progress };
 }
