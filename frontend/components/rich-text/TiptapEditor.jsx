@@ -380,8 +380,10 @@ const TiptapEditor = ({
                 uploadedUrl = data.url;
                 uploadedId = data.id;
               } catch (err) {
-                uploadedUrl = URL.createObjectURL(blob);
-                uploadedId = null;
+                // Show error and do not insert blob: URL
+                alert("Failed to upload audio. Please try again.");
+                tiptap.setAudioRecorderModalOpen(false);
+                return;
               }
               tiptap.setSelectedMedia({
                 src: uploadedUrl,
