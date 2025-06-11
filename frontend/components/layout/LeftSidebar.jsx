@@ -29,7 +29,7 @@ const LeftSidebar = ({
     user.avatar && user.avatar.length > 0
       ? user.avatar.startsWith("http")
         ? user.avatar
-        : `http://localhost:5050/${user.avatar.replace(/^\/?/, "")}`
+        : `${import.meta.env.VITE_BACKEND_URL}/${user.avatar.replace(/^\/?/, "")}`
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=0D8ABC&color=fff`;
 
   return (
