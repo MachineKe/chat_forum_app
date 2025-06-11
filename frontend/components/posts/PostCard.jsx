@@ -22,7 +22,7 @@ function getRelativeTime(dateString) {
 }
 
 import MediaPlayer from "@components/media/MediaPlayer";
-import { resolveMediaUrl } from "@utils/api";
+import { resolveMediaUrl, fixMediaSrcs } from "@utils/api";
 import useUser from "@hooks/useUser";
 import ExcessContentManager from "@components/common/ExcessContentManager";
 
@@ -743,7 +743,7 @@ function renderTextBeforeMedia(content, media_title, media_type, suppressAudio) 
     );
   } catch (err) {
     // Fallback to raw HTML if parsing fails
-    return <span dangerouslySetInnerHTML={{ __html: content }} />;
+    return <span dangerouslySetInnerHTML={{ __html: fixMediaSrcs(content) }} />;
   }
 }
 

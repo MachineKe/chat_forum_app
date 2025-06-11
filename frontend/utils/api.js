@@ -22,3 +22,16 @@ export function resolveMediaUrl(path) {
   // Otherwise, return as-is
   return path;
 }
+
+/**
+ * Rewrites all src/href attributes in HTML that start with /uploads/ to use the backend URL.
+ * Use for raw HTML rendering (dangerouslySetInnerHTML) to ensure media loads correctly.
+ */
+export function fixMediaSrcs(html) {
+  if (typeof html !== "string") return html;
+  const backend = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "");
+  return html.replace(
+    /(src|href)=["'](\/uploads\/[^"']+)["']/g,
+    (match, attr, path) => `${attr}="${backend}${path}"`
+  );
+}

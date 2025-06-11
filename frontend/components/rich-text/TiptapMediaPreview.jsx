@@ -1,6 +1,6 @@
 import React from "react";
 import MediaPlayer from "@components/media/MediaPlayer";
-import { resolveMediaUrl } from "@utils/api";
+import { resolveMediaUrl, fixMediaSrcs } from "@utils/api";
 
 // Helper to render only media nodes from Tiptap HTML
 function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
@@ -98,7 +98,7 @@ function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
     );
   } catch (err) {
     // Fallback to raw HTML if parsing fails
-    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    return <span dangerouslySetInnerHTML={{ __html: fixMediaSrcs(html) }} />;
   }
 }
 
