@@ -1,6 +1,7 @@
 import React from "react";
 import Avatar from "@components/layout/Avatar";
 import MediaPlayer from "@components/media/MediaPlayer";
+import { resolveMediaUrl } from "@utils/api";
 
 /**
  * ChatBubble - Message bubble with sender, time, and proper styling.
@@ -36,7 +37,7 @@ const ChatBubble = ({
       {media_src && media_type && (
         <div className="mb-2 w-full">
           <MediaPlayer
-            src={media_src}
+            src={resolveMediaUrl(media_src)}
             type={media_type}
             title={media_title}
             thumbnail={thumbnail}

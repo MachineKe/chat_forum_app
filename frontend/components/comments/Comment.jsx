@@ -5,6 +5,7 @@ import PlainText from "@components/rich-text/PlainText";
 import ExcessContentManager from "@components/common/ExcessContentManager";
 import Avatar from "@components/layout/Avatar";
 import MediaPlayer from "@components/media/MediaPlayer";
+import { resolveMediaUrl } from "@utils/api";
 import LikeButton from "@components/layout/LikeButton";
 import { FaThumbsUp } from "react-icons/fa";
 import CommentInput from "@components/comments/CommentInput";
@@ -176,7 +177,7 @@ const Comment = ({
             return (
               <div className="mb-2">
                 <MediaPlayer
-                  src={mediaPath}
+                  src={resolveMediaUrl(mediaPath)}
                   type={mediaType}
                   title={comment.media_title || (mediaObj && mediaObj.title) || undefined}
                   thumbnail={
