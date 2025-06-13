@@ -196,26 +196,30 @@ const Comment = ({
         })()}
         <div className="flex items-center gap-4 text-gray-500 text-xs mt-1">
           <span>{formatRelativeTime(comment.createdAt)}</span>
-          <LikeButton
-            liked={liked}
-            loading={likeLoading}
-            onLike={handleLike}
-            style={{ padding: 0 }}
-            variant="link"
-          />
-          <button
-            className="text-blue-600 font-medium hover:underline px-1 bg-transparent border-none cursor-pointer"
-            tabIndex={0}
-            onClick={() => {
-              setReplyingToCommentId(comment.id);
-              setReplyContent("");
-              setReplyMediaId(null);
-              setReplyMedia(null);
-            }}
-            style={{ padding: 0 }}
-          >
-            Reply
-          </button>
+          {user && (
+            <LikeButton
+              liked={liked}
+              loading={likeLoading}
+              onLike={handleLike}
+              style={{ padding: 0 }}
+              variant="link"
+            />
+          )}
+          {user && (
+            <button
+              className="text-blue-600 font-medium hover:underline px-1 bg-transparent border-none cursor-pointer"
+              tabIndex={0}
+              onClick={() => {
+                setReplyingToCommentId(comment.id);
+                setReplyContent("");
+                setReplyMediaId(null);
+                setReplyMedia(null);
+              }}
+              style={{ padding: 0 }}
+            >
+              Reply
+            </button>
+          )}
         </div>
         {likeCount > 0 && (
           <div className="flex items-center gap-1 mt-1 ml-auto w-fit pr-2">
@@ -273,7 +277,7 @@ const Comment = ({
             )}
           </div>
         )}
-        {replyingToCommentId === comment.id && (
+        {user && replyingToCommentId === comment.id && (
           <div className="mt-2">
             <div style={{ minHeight: 120 }}>
               <CommentInput

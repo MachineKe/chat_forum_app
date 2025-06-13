@@ -17,69 +17,71 @@ const Forum = () => {
         <div className="flex flex-col items-center w-full pt-6 bg-[#f7f9fa]">
           <div className="w-full max-w-2xl mx-auto">
             {/* Post Composer */}
-            {forum.showSettings ? (
-              <PostSettingsCard
-                key="post-settings"
-                content={forum.content}
-                media={
-                  forum.selectedMedia
-                    ? {
-                        url: forum.selectedMedia.src,
-                        type: forum.selectedMedia.type === "pdf" ? "document" : forum.selectedMedia.type,
-                        title: forum.selectedMedia.title,
-                        thumbnail: forum.selectedMedia.thumbnail
-                      }
-                    : null
-                }
-                media_title={forum.mediaTitle}
-                onBack={() => forum.setShowSettings(false)}
-                onPost={() => forum.handleSubmit({
-                  content: forum.content,
-                  media_id: forum.selectedMedia?.id,
-                  media_type: forum.selectedMedia?.type,
-                  media_title: forum.selectedMedia?.title,
-                  media_url: forum.selectedMedia?.src,
-                  thumbnail: forum.selectedMedia?.thumbnail
-                })}
-                loading={forum.loading}
-                user={forum.isAuthenticated ? {
-                  name: forum.fullName || forum.username || "User",
-                  avatar:
-                    forum.userAvatar && forum.userAvatar.length > 0
-                      ? forum.userAvatar
-                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(forum.username || "User")}&background=0D8ABC&color=fff`
-                } : null}
-              />
-            ) : (
-              <PostInput
-                user={forum.isAuthenticated ? {
-                  name: forum.fullName || forum.username || "User",
-                  avatar:
-                    forum.userAvatar && forum.userAvatar.length > 0
-                      ? forum.userAvatar
-                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(forum.username || "User")}&background=0D8ABC&color=fff`
-                } : null}
-                onSubmit={({ content, media_id, media_type, media_title, media_src, thumbnail, reset, ...rest }) => {
-                  forum.setContent(content);
-                  forum.setSelectedMedia({
-                    id: media_id,
-                    type: media_type,
-                    src: media_src,
-                    title: media_title,
-                    thumbnail,
-                    ...rest // pass through any extra metadata (e.g. file, duration, etc.)
-                  });
-                  forum.setMediaTitle(media_title || "");
-                  forum.setMediaId(media_id);
-                  forum.setShowSettings(true);
-                  reset();
-                }}
-                placeholder="What's happening?"
-                actionLabel="Next"
-                minHeight={80}
-                autoFocus={forum.isEditorActive}
-                onCancel={() => forum.setIsEditorActive(false)}
-              />
+            {forum.isAuthenticated && (
+              forum.showSettings ? (
+                <PostSettingsCard
+                  key="post-settings"
+                  content={forum.content}
+                  media={
+                    forum.selectedMedia
+                      ? {
+                          url: forum.selectedMedia.src,
+                          type: forum.selectedMedia.type === "pdf" ? "document" : forum.selectedMedia.type,
+                          title: forum.selectedMedia.title,
+                          thumbnail: forum.selectedMedia.thumbnail
+                        }
+                      : null
+                  }
+                  media_title={forum.mediaTitle}
+                  onBack={() => forum.setShowSettings(false)}
+                  onPost={() => forum.handleSubmit({
+                    content: forum.content,
+                    media_id: forum.selectedMedia?.id,
+                    media_type: forum.selectedMedia?.type,
+                    media_title: forum.selectedMedia?.title,
+                    media_url: forum.selectedMedia?.src,
+                    thumbnail: forum.selectedMedia?.thumbnail
+                  })}
+                  loading={forum.loading}
+                  user={{
+                    name: forum.fullName || forum.username || "User",
+                    avatar:
+                      forum.userAvatar && forum.userAvatar.length > 0
+                        ? forum.userAvatar
+                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(forum.username || "User")}&background=0D8ABC&color=fff`
+                  }}
+                />
+              ) : (
+                <PostInput
+                  user={{
+                    name: forum.fullName || forum.username || "User",
+                    avatar:
+                      forum.userAvatar && forum.userAvatar.length > 0
+                        ? forum.userAvatar
+                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(forum.username || "User")}&background=0D8ABC&color=fff`
+                  }}
+                  onSubmit={({ content, media_id, media_type, media_title, media_src, thumbnail, reset, ...rest }) => {
+                    forum.setContent(content);
+                    forum.setSelectedMedia({
+                      id: media_id,
+                      type: media_type,
+                      src: media_src,
+                      title: media_title,
+                      thumbnail,
+                      ...rest // pass through any extra metadata (e.g. file, duration, etc.)
+                    });
+                    forum.setMediaTitle(media_title || "");
+                    forum.setMediaId(media_id);
+                    forum.setShowSettings(true);
+                    reset();
+                  }}
+                  placeholder="What's happening?"
+                  actionLabel="Next"
+                  minHeight={80}
+                  autoFocus={forum.isEditorActive}
+                  onCancel={() => forum.setIsEditorActive(false)}
+                />
+              )
             )}
             {forum.error && <div className="text-red-600 mb-2">{forum.error}</div>}
             {/* Posts Feed */}
