@@ -7,9 +7,11 @@ import Sidebar from "@components/layout/Sidebar";
 import PlainText from "@components/rich-text/PlainText";
 import { MediaPlayerProvider } from "@components/media/MediaPlayerContext";
 import useForumPage from "@hooks/useForumPage";
+import { useAuth } from "@hooks/useAuth.jsx";
 
 const Forum = () => {
   const forum = useForumPage();
+  const { user } = useAuth();
 
   return (
     <>
@@ -17,7 +19,7 @@ const Forum = () => {
         <div className="flex flex-col items-center w-full pt-6 bg-[#f7f9fa]">
           <div className="w-full max-w-2xl mx-auto">
             {/* Post Composer */}
-            {forum.isAuthenticated && (
+            {user && (
               forum.showSettings ? (
                 <PostSettingsCard
                   key="post-settings"
