@@ -135,6 +135,7 @@ const MediaPlayer = ({
       className={className}
     >
       <TitlePane />
+      {/* Remove gap between title and audio player */}
       {mediaType === "video" && (
         (() => {
           const [isLoading, setIsLoading] = useState(true);
@@ -272,7 +273,7 @@ const MediaPlayer = ({
                 style={{
                   ...mergedStyle,
                   width: "100%",
-                  marginTop: 0,
+                  marginTop: mediaTitle ? "-2px" : 0,  /* negative margin to remove gap */
                   paddingTop: 0,
                   borderTop: "none",
                   borderRadius: 8,

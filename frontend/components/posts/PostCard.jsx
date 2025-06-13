@@ -387,14 +387,13 @@ const PostCard = ({
                 thumbnail={thumbnail}
                 style={{
                   maxWidth: "100%",
-                  minHeight: type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined,
-                  height: type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined,
                   borderRadius: 8,
                   borderTopLeftRadius: title ? 0 : 8,
                   borderTopRightRadius: title ? 0 : 8,
-                  margin: type === "audio" ? "0 0 8px 0" : "8px 0"
+                  margin: type === "audio" ? "8px 0" : "8px 0"
                 }}
-                height={type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined}
+                // Remove forced height/minHeight for audio
+                height={undefined}
                 barCount={type === "audio" ? 64 : undefined}
               />
             </div>
