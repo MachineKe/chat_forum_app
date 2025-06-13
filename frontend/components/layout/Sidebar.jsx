@@ -21,7 +21,18 @@ const Sidebar = ({
   const { user } = useAuth();
   return (
     <div className={`flex min-h-screen w-full bg-white ${className}`} style={style}>
-      {user && <LeftSidebar {...leftSidebarProps} />}
+      {user ? (
+        <LeftSidebar {...leftSidebarProps} />
+      ) : (
+        <div className="w-64 flex items-start justify-start p-6">
+          <img
+            src="/epra logo.png"
+            alt="Logo"
+            className="h-10 w-auto"
+            style={{ objectFit: "contain" }}
+          />
+        </div>
+      )}
       <main className="flex-1 min-h-screen">{children}</main>
       {!isChatPage && <RightSidebar {...rightSidebarProps} />}
     </div>
