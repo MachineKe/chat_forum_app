@@ -43,8 +43,36 @@ const DocumentCarousel = ({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [transitioning, setTransitioning] = useState(false);
   const [pendingPage, setPendingPage] = useState(null);
+  const [pdfPageHeight, setPdfPageHeight] = useState(0);
+  const [pdfBuffer, setPdfBuffer] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+
+  // Fetch PDF as ArrayBuffer once on mount or when src changes
+  React.useEffect(() => {
+    if (!src) return;
+    setPdfLoading(true);
+    setPdfError(null);
+    fetch(src)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch PDF");
+        return res.arrayBuffer();
+      })
+      .then(buffer => {
+        setPdfBuffer(buffer);
+        setPdfLoading(false);
+      })
+      .catch(err => {
+        setPdfError(err.message || "Failed to load PDF");
+        setPdfLoading(false);
+      });
+  }, [src]);
 
   if (!src) return null;
+
+  const handlePageRender = useCallback((heightPx) => {
+    if (heightPx && heightPx > 0) setPdfPageHeight(heightPx);
+  }, []);
 
   const handleLoadSuccess = useCallback(
     ({ numPages }) => {
@@ -92,18 +120,28 @@ const DocumentCarousel = ({
       {/* Show a loading spinner only while numPages is null (before PDF loads) */}
       <div className="relative w-full h-full bg-white rounded-xl shadow-lg flex flex-col justify-center items-center py-4 group overflow-visible z-10">
         {/* Loading spinner overlay */}
-        {numPages === null && (
+        {(pdfLoading || numPages === null) && (
           <div className="absolute inset-0 flex items-center justify-center w-full h-full z-20" style={{ background: "rgba(255,255,255,0.7)" }}>
             <LoadingSpinner label="Loading PDF..." />
+          </div>
+        )}
+        {pdfError && (
+          <div className="absolute inset-0 flex items-center justify-center w-full h-full z-20 bg-white bg-opacity-90 text-red-600">
+            {pdfError}
           </div>
         )}
         <div
           className="w-full h-full flex-1 flex items-center justify-center outline-none transition-opacity duration-300"
           tabIndex={0}
-          style={{ opacity: transitioning ? 0 : 1 }}
+          style={{
+            opacity: transitioning ? 0 : 1,
+            minHeight: pdfPageHeight ? `${pdfPageHeight}px` : "400px",
+            transition: "min-height 0.2s"
+          }}
         >
           <DocumentViewer
             src={src}
+            file={pdfBuffer ? { data: pdfBuffer } : undefined}
             type={type}
             pageNumber={currentPage}
             onLoadSuccess={handleLoadSuccess}
@@ -111,6 +149,8 @@ const DocumentCarousel = ({
             className="w-full h-full"
             style={{ borderRadius: 16, background: "white", width: "100%", height: "100%" }}
             hideLoading={true}
+            onPageRender={handlePageRender}
+            minHeight={pdfPageHeight ? `${pdfPageHeight}px` : "400px"}
           />
         </div>
         {/* Carousel Navigation Buttons */}

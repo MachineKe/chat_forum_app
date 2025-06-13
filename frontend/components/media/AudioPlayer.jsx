@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef } from "react";
 import { MdPlayArrow, MdPause, MdVolumeUp, MdVolumeOff } from "react-icons/md";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 /**
  * AudioPlayer with animated random bar spectrum visualization (fixed size, transparent container).
@@ -23,6 +24,7 @@ const AudioPlayer = forwardRef(({
   onLoadedData,
   ...restProps
 }, ref) => {
+  const [isLoading, setIsLoading] = useState(true);
   const localAudioRef = useRef();
   const audioRef = ref || localAudioRef;
   const canvasRef = useRef();
@@ -266,9 +268,26 @@ const AudioPlayer = forwardRef(({
         justifyContent: "flex-start",
         gap: 0,
         padding: 0,
+        position: "relative",
       }}
       {...restProps}
     >
+      {isLoading && (
+        <div style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 10,
+          background: "rgba(255,255,255,0.8)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          <LoadingSpinner label="Loading audio..." />
+        </div>
+      )}
       {hasThumbnail ? (
         <div
           style={{
@@ -348,7 +367,10 @@ const AudioPlayer = forwardRef(({
           loop={loop}
           muted={isMuted}
           style={{ display: "none" }}
-          onLoadedData={onLoadedData}
+          onLoadedData={e => {
+            setIsLoading(false);
+            if (onLoadedData) onLoadedData(e);
+          }}
           {...audioProps}
         />
         <button

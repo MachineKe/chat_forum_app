@@ -127,7 +127,13 @@ const MediaPlayer = ({
     : style;
 
   return (
-    <div>
+    <div
+      style={{
+        minHeight: rest.minHeight || style.minHeight || undefined,
+        ...style,
+      }}
+      className={className}
+    >
       <TitlePane />
       {mediaType === "video" && (
         (() => {
