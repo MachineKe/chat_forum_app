@@ -1,8 +1,16 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 
-// Set workerSrc for react-pdf to the local public directory to avoid CORS and import issues
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+ // Set workerSrc for react-pdf to the local public directory as an ES module
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.log("pdfjs workerSrc set to:", pdfjs.GlobalWorkerOptions.workerSrc);
+  window.onerror = function (msg, url, line, col, error) {
+    // eslint-disable-next-line no-console
+    console.error("Global error:", msg, url, line, col, error);
+  };
+}
 
 /**
  * DocumentViewer - renders a specific page of a PDF using react-pdf, responsive to parent width.
@@ -22,6 +30,7 @@ const DocumentViewer = ({
   className = "",
   style = {},
   onLoadSuccess,
+  hideLoading = false,
 }) => {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(null);
@@ -44,6 +53,9 @@ const DocumentViewer = ({
     return () => resizeObserver.disconnect();
   }, []);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
   if (!src) return null;
 
   // Only PDF supported for now
@@ -58,11 +70,33 @@ const DocumentViewer = ({
           ...style,
         }}
       >
+        {isLoading && !hasError && !hideLoading && (
+          <div className="flex items-center justify-center w-full h-64 absolute top-0 left-0 z-10 bg-white bg-opacity-80">
+            <span className="text-gray-400">Loading PDF...</span>
+          </div>
+        )}
         <Document
           file={src}
-          onLoadSuccess={onLoadSuccess}
-          loading={<div className="text-center text-gray-400">Loading PDF...</div>}
-          error={<div className="text-center text-red-500">Failed to load PDF.</div>}
+          onLoadSuccess={info => {
+            setIsLoading(false);
+            setHasError(false);
+            if (typeof window !== "undefined") {
+              // eslint-disable-next-line no-console
+              console.log("PDF onLoadSuccess", info);
+            }
+            if (onLoadSuccess) onLoadSuccess(info);
+          }}
+          onLoadError={err => {
+            setIsLoading(false);
+            setHasError(true);
+            if (typeof window !== "undefined") {
+              // eslint-disable-next-line no-console
+              console.error("PDF onLoadError", err);
+            }
+            if (typeof onError === "function") onError(err);
+          }}
+          loading={null}
+          error={null}
         >
           <Page
             pageNumber={pageNumber}
@@ -71,6 +105,9 @@ const DocumentViewer = ({
             renderAnnotationLayer={false}
           />
         </Document>
+        {hasError && (
+          <div className="text-center text-red-500">Failed to load PDF.</div>
+        )}
       </div>
     );
   }

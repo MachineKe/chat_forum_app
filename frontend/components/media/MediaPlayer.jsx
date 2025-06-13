@@ -225,8 +225,13 @@ const MediaPlayer = ({
                 justifyContent: "flex-start",
                 gap: 0,
                 background: "transparent",
-                minHeight: "unset",
+                minHeight: 120,
                 height: "auto",
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: 8,
+                borderTopLeftRadius: mediaTitle ? 0 : 8,
+                borderTopRightRadius: mediaTitle ? 0 : 8,
               }}
             >
               {isLoading && !hasError && (
@@ -360,53 +365,13 @@ const MediaPlayer = ({
         })()
       )}
       {mediaType === "document" && (
-        (() => {
-          const [isLoading, setIsLoading] = useState(true);
-          const [hasError, setHasError] = useState(false);
-          return (
-            <div style={{ position: "relative", width: "100%" }}>
-              {isLoading && !hasError && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    zIndex: 2,
-                    background: "rgba(0,0,0,0)",
-                  }}
-                >
-                  <LoadingSpinner label="Loading PDF..." />
-                </div>
-              )}
-              {hasError && (
-                <div className="text-red-500 text-sm">Failed to load PDF</div>
-              )}
-              <DocumentCarousel
-                src={src}
-                type="application/pdf"
-                className={className}
-                style={{
-                  ...mergedStyle,
-                  display: isLoading ? "none" : undefined,
-                }}
-                onLoad={() => {
-                  setIsLoading(false);
-                  setHasError(false);
-                }}
-                onError={() => {
-                  setIsLoading(false);
-                  setHasError(true);
-                }}
-                {...rest}
-              />
-            </div>
-          );
-        })()
+        <DocumentCarousel
+          src={src}
+          type="application/pdf"
+          className={className}
+          style={mergedStyle}
+          {...rest}
+        />
       )}
       {mediaType === "unknown" && <span>Unsupported media type</span>}
     </div>

@@ -15,8 +15,9 @@
  *   initialPage: Page to show first (default 1)
  */
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import DocumentViewer from "./DocumentViewer";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 /**
  * DocumentCarousel - carousel for viewing pages of a single PDF document.
@@ -35,6 +36,8 @@ const DocumentCarousel = ({
   className = "",
   style = {},
   initialPage = 1,
+  onLoadSuccess,
+  onError,
 }) => {
   const [numPages, setNumPages] = useState(null);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -43,11 +46,30 @@ const DocumentCarousel = ({
 
   if (!src) return null;
 
-  const handleLoadSuccess = ({ numPages }) => {
-    setNumPages(numPages);
-    // Clamp currentPage if needed
-    if (currentPage > numPages) setCurrentPage(numPages);
-  };
+  const handleLoadSuccess = useCallback(
+    ({ numPages }) => {
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.log("DocumentCarousel handleLoadSuccess numPages:", numPages);
+      }
+      setNumPages(numPages);
+      // Clamp currentPage if needed
+      if (currentPage > numPages) setCurrentPage(numPages);
+      if (onLoadSuccess) onLoadSuccess();
+    },
+    [currentPage, onLoadSuccess]
+  );
+
+  const handleError = useCallback(
+    (err) => {
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.error("DocumentCarousel handleError", err);
+      }
+      if (onError) onError(err);
+    },
+    [onError]
+  );
 
   const goTo = (page) => {
     if (!numPages) return;
@@ -67,22 +89,32 @@ const DocumentCarousel = ({
 
   return (
     <div className={`w-full py-4 ${className}`} style={style}>
+      {/* Show a loading spinner only while numPages is null (before PDF loads) */}
       <div className="relative w-full h-full bg-white rounded-xl shadow-lg flex flex-col justify-center items-center py-4 group overflow-visible z-10">
+        {/* Loading spinner overlay */}
+        {numPages === null && (
+          <div className="absolute inset-0 flex items-center justify-center w-full h-full z-20" style={{ background: "rgba(255,255,255,0.7)" }}>
+            <LoadingSpinner label="Loading PDF..." />
+          </div>
+        )}
         <div
-          className={`w-full h-full flex-1 flex items-center justify-center outline-none transition-opacity duration-300 ${transitioning ? "opacity-0" : "opacity-100"}`}
+          className="w-full h-full flex-1 flex items-center justify-center outline-none transition-opacity duration-300"
           tabIndex={0}
+          style={{ opacity: transitioning ? 0 : 1 }}
         >
           <DocumentViewer
             src={src}
             type={type}
             pageNumber={currentPage}
             onLoadSuccess={handleLoadSuccess}
+            onError={handleError}
             className="w-full h-full"
             style={{ borderRadius: 16, background: "white", width: "100%", height: "100%" }}
+            hideLoading={true}
           />
         </div>
         {/* Carousel Navigation Buttons */}
-        {numPages && numPages > 1 && (
+        {numPages > 1 && (
           <>
             <button
               className="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-90 rounded-full shadow-lg p-3 z-20 border border-gray-300 hover:bg-blue-100 transition-all opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto disabled:opacity-40 disabled:pointer-events-none text-2xl"
@@ -109,7 +141,7 @@ const DocumentCarousel = ({
         )}
       </div>
       {/* Page Indicator and Dots BELOW the PDF card */}
-      {numPages && numPages > 1 && (
+      {numPages > 1 && (
         <div className="flex flex-col items-center mt-2" style={{ background: "none", border: "none" }}>
           <span className="text-xs text-gray-700 bg-white bg-opacity-90 rounded px-2 py-1 shadow border border-gray-200 mb-1">
             {currentPage} / {numPages}
