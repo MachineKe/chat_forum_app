@@ -12,6 +12,7 @@ import Sidebar from "@components/layout/Sidebar";
 import { useAuth } from "@hooks/useAuth.jsx";
 import LoggedOutFooter from "@components/layout/LoggedOutFooter.jsx";
 
+
 // Layout with persistent Sidebar
 function SidebarLayout() {
   return (

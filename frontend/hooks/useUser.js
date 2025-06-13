@@ -14,8 +14,15 @@ export default function useUser() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user && user.email) {
+    let user = null;
+    try {
+      const raw = localStorage.getItem("user");
+      if (raw) user = JSON.parse(raw);
+    } catch (e) {
+      // Invalid JSON or corrupted value
+      user = null;
+    }
+    if (user && typeof user === "object" && user.email) {
       fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/user-by-email?email=${encodeURIComponent(user.email)}`)
         .then(res => res.json())
         .then(data => {

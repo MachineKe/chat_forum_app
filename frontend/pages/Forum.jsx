@@ -12,9 +12,9 @@ const Forum = () => {
   const forum = useForumPage();
 
   return (
-    <div className="min-h-screen bg-[#f7f9fa]">
+    <>
       <MediaPlayerProvider>
-        <div className="flex flex-col items-center w-full pt-6">
+        <div className="flex flex-col items-center w-full pt-6 bg-[#f7f9fa]">
           <div className="w-full max-w-2xl mx-auto">
             {/* Post Composer */}
             {forum.showSettings ? (
@@ -42,23 +42,23 @@ const Forum = () => {
                   thumbnail: forum.selectedMedia?.thumbnail
                 })}
                 loading={forum.loading}
-                user={{
+                user={forum.isAuthenticated ? {
                   name: forum.fullName || forum.username || "User",
                   avatar:
                     forum.userAvatar && forum.userAvatar.length > 0
                       ? forum.userAvatar
                       : `https://ui-avatars.com/api/?name=${encodeURIComponent(forum.username || "User")}&background=0D8ABC&color=fff`
-                }}
+                } : null}
               />
             ) : (
               <PostInput
-                user={{
+                user={forum.isAuthenticated ? {
                   name: forum.fullName || forum.username || "User",
                   avatar:
                     forum.userAvatar && forum.userAvatar.length > 0
                       ? forum.userAvatar
                       : `https://ui-avatars.com/api/?name=${encodeURIComponent(forum.username || "User")}&background=0D8ABC&color=fff`
-                }}
+                } : null}
                 onSubmit={({ content, media_id, media_type, media_title, media_src, thumbnail, reset, ...rest }) => {
                   forum.setContent(content);
                   forum.setSelectedMedia({
@@ -117,7 +117,7 @@ const Forum = () => {
           </div>
         </div>
       </MediaPlayerProvider>
-    </div>
+    </>
   );
 };
 

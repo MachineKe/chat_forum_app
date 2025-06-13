@@ -26,8 +26,8 @@ const PublicProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="flex flex-col items-center w-full pt-6">
+    <>
+      <div className="flex flex-col items-center w-full pt-6 bg-[#f7f9fa]">
         <div className="w-full">
           <div className="w-full flex items-center px-4 py-3 border-b bg-white sticky top-0 z-10">
             <BackButton label="Profile" />
@@ -211,7 +211,7 @@ const PublicProfile = () => {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

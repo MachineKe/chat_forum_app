@@ -7,14 +7,38 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
 
-  // Load user/token from localStorage on mount
+  // Load user/token from localStorage on mount and keep in sync with storage events
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    function syncAuthFromStorage() {
+      const storedToken = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
+      let validUser = null;
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          // Only accept if parsed is an object and not a string like "user"
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            validUser = parsed;
+          } else {
+            localStorage.removeItem("user");
+          }
+        } catch {
+          localStorage.removeItem("user");
+        }
+      }
+      if (storedToken && validUser) {
+        setToken(storedToken);
+        setUser(validUser);
+      } else {
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
     }
+    syncAuthFromStorage();
+    window.addEventListener("storage", syncAuthFromStorage);
+    return () => window.removeEventListener("storage", syncAuthFromStorage);
   }, []);
 
   // Save user/token to localStorage when changed

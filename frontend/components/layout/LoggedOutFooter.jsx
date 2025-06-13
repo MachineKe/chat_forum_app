@@ -9,7 +9,7 @@ const LoggedOutFooter = () => {
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between py-3 px-4">
         <div className="text-center sm:text-left mb-2 sm:mb-0">
           <div className="font-bold text-lg">Don’t miss what’s happening</div>
-          <div className="text-sm text-white/90">People on X are the first to know.</div>
+          <div className="text-sm text-white/90">People on EPRA Forum are the first to know.</div>
         </div>
         <div className="flex gap-2">
           <button

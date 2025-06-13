@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { leftSidebarRoutes } from "./sidebarConfig";
+import { useAuth } from "@hooks/useAuth.jsx";
 
 /**
  * Reusable LeftSidebar component.
@@ -12,25 +13,53 @@ const LeftSidebar = ({
   children,
 }) => {
   const navigate = useNavigate();
-  // Get user from localStorage (safe fallback)
-  let user = { full_name: "Guest", username: "guest", avatar: "" };
-  try {
-    const stored = JSON.parse(localStorage.getItem("user"));
-    if (stored) {
-      user = {
-        full_name: stored.full_name || stored.username || "User",
-        username: stored.username || (stored.email ? stored.email.split("@")[0] : "user"),
-        avatar: stored.avatar || "",
-      };
-    }
-  } catch {}
+  const { user } = useAuth();
+
+  // Only show logo if logged out
+  if (!user) {
+    return (
+      <aside
+        className={`w-64 min-h-screen bg-white border-r border-gray-200 p-0 flex flex-col ${className}`}
+        style={style}
+      >
+        <div className="flex flex-col items-center justify-center h-full p-6">
+          <Link to="/" className="px-4 flex items-center justify-center">
+            <img
+              src="/epra logo.png"
+              alt="EPRA Logo"
+              className="h-12 w-auto object-contain"
+              style={{ maxWidth: 160 }}
+              onError={e => {
+                e.target.onerror = null;
+                e.target.style.display = "none";
+                const parent = e.target.parentNode;
+                if (parent && !parent.querySelector(".logo-placeholder")) {
+                  const div = document.createElement("div");
+                  div.className = "logo-placeholder flex items-center justify-center bg-gray-200 text-gray-600 font-bold rounded h-12 w-32";
+                  div.innerText = "LOGO";
+                  parent.appendChild(div);
+                }
+              }}
+            />
+          </Link>
+        </div>
+      </aside>
+    );
+  }
+
+
+  const userInfo = {
+    full_name: user.full_name || user.username || "User",
+    username: user.username || (user.email ? user.email.split("@")[0] : "user"),
+    avatar: user.avatar || "",
+  };
 
   const avatar =
-    user.avatar && user.avatar.length > 0
-      ? user.avatar.startsWith("http")
-        ? user.avatar
-        : `${import.meta.env.VITE_BACKEND_URL}/${user.avatar.replace(/^\/?/, "")}`
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=0D8ABC&color=fff`;
+    userInfo.avatar && userInfo.avatar.length > 0
+      ? userInfo.avatar.startsWith("http")
+        ? userInfo.avatar
+        : `${import.meta.env.VITE_BACKEND_URL}/${userInfo.avatar.replace(/^\/?/, "")}`
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.full_name)}&background=0D8ABC&color=fff`;
 
   return (
     <aside
@@ -84,9 +113,9 @@ const LeftSidebar = ({
         <div className="flex-1" />
         {/* User Profile Section with Options Menu */}
         <UserProfileCard
-          user={user}
+          user={userInfo}
           avatar={avatar}
-          onProfileClick={() => navigate(`/user/${user.username}`)}
+          onProfileClick={() => navigate(`/user/${userInfo.username}`)}
           onLogout={() => {
             localStorage.removeItem("user");
             window.location.href = "/login";
