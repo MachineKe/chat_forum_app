@@ -9,6 +9,8 @@ import PublicProfile from "@pages/PublicProfile";
 import AudioRecorderDemo from "@pages/AudioRecorderDemo";
 import Chat from "@pages/Chat";
 import Sidebar from "@components/layout/Sidebar";
+import { useAuth } from "@hooks/useAuth.jsx";
+import LoggedOutFooter from "@components/layout/LoggedOutFooter.jsx";
 
 // Layout with persistent Sidebar
 function SidebarLayout() {
@@ -20,23 +22,28 @@ function SidebarLayout() {
 }
 
 function App() {
+  const { user } = useAuth();
+
   return (
     <Router>
-      <Routes>
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        {/* All main pages use the Sidebar layout */}
-        <Route element={<SidebarLayout />}>
-          <Route path="/" element={<Forum />} />
-          <Route path="/post/:id" element={<PostDetail />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/user/:username" element={<PublicProfile />} />
-          <Route path="/recorder" element={<AudioRecorderDemo />} />
-          <Route path="/recorder" element={<AudioRecorderDemo />} />
-          <Route path="/chat" element={<Chat />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+          {/* All main pages use the Sidebar layout */}
+          <Route element={<SidebarLayout />}>
+            <Route path="/" element={<Forum />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/user/:username" element={<PublicProfile />} />
+            <Route path="/recorder" element={<AudioRecorderDemo />} />
+            <Route path="/recorder" element={<AudioRecorderDemo />} />
+            <Route path="/chat" element={<Chat />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+        {!user && <LoggedOutFooter />}
+      </>
     </Router>
   );
 }
