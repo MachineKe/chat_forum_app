@@ -285,6 +285,7 @@ const PostCard = ({
                 profileUrl={`/user/${username}`}
                 onClick={e => {
                   e.preventDefault();
+                  e.stopPropagation();
                   navigate(`/user/${username}`);
                 }}
               />
@@ -310,6 +311,7 @@ const PostCard = ({
             onClick={e => {
               if (username && typeof username === "string" && username.trim().length > 0) {
                 e.preventDefault();
+                e.stopPropagation();
                 navigate(`/user/${username}`);
               }
             }}

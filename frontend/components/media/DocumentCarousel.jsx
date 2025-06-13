@@ -119,7 +119,10 @@ const DocumentCarousel = ({
             <button
               className="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-90 rounded-full shadow-lg p-3 z-20 border border-gray-300 hover:bg-blue-100 transition-all opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto disabled:opacity-40 disabled:pointer-events-none text-2xl"
               style={{ left: 8, right: "auto" }}
-              onClick={handlePrev}
+              onClick={e => {
+                e.stopPropagation();
+                handlePrev();
+              }}
               disabled={currentPage === 1}
               aria-label="Previous page"
             >
@@ -128,7 +131,10 @@ const DocumentCarousel = ({
             <button
               className="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-90 rounded-full shadow-lg p-3 z-20 border border-gray-300 hover:bg-blue-100 transition-all opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto disabled:opacity-40 disabled:pointer-events-none text-2xl"
               style={{ right: 8, left: "auto" }}
-              onClick={handleNext}
+              onClick={e => {
+                e.stopPropagation();
+                handleNext();
+              }}
               disabled={currentPage === numPages}
               aria-label="Next page"
             >
