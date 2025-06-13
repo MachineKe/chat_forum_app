@@ -13,6 +13,8 @@ import useTiptapEditor from "@hooks/useTiptapEditor";
  * Handles its own modals, toolbar, media meta, and compact preview.
  */
 import { IoClose } from "react-icons/io5";
+import UploadFeedback from "@components/common/UploadFeedback";
+import { resolveMediaUrl } from "@utils/api";
 
 export default function TiptapEditorMiniBox({
   value,
@@ -136,6 +138,13 @@ export default function TiptapEditorMiniBox({
               </div>
             )}
           </div>
+          {/* Upload progress and error feedback */}
+          <UploadFeedback
+            loading={tiptap.uploadLoading || tiptap.uploading}
+            progress={tiptap.uploadProgress}
+            error={tiptap.uploadError}
+            onRetry={tiptap.retryUpload}
+          />
           {/* Toolbar and media title input row */}
           <div className="flex items-center gap-2 mb-1 mt-1 w-full flex-nowrap">
             <TiptapToolbar
@@ -255,7 +264,7 @@ export default function TiptapEditorMiniBox({
                       if (type === "image") {
                         return (
                           <img
-                            src={src}
+                            src={resolveMediaUrl(src)}
                             alt="preview"
                             className="rounded-xl object-cover"
                             style={{ width: 40, height: 40 }}
@@ -264,7 +273,7 @@ export default function TiptapEditorMiniBox({
                       } else if (type === "video") {
                         return (
                           <video
-                            src={src}
+                            src={resolveMediaUrl(src)}
                             className="rounded-xl object-cover"
                             style={{ width: 40, height: 40 }}
                             controls={false}

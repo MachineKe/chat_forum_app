@@ -102,8 +102,12 @@ const TiptapEditor = ({
           )}
         </div>
         {/* Upload feedback for mini editor */}
-        {tiptap.uploadLoading && <LoadingSpinner progress={tiptap.uploadProgress} />}
-        <UploadError error={tiptap.uploadError} onRetry={tiptap.retryUpload} />
+        <UploadFeedback
+          loading={tiptap.uploadLoading || tiptap.uploading}
+          progress={tiptap.uploadProgress}
+          error={tiptap.uploadError}
+          onRetry={tiptap.retryUpload}
+        />
         {/* Minimal toolbar: only emoji, attach, and send */}
         <TiptapToolbar
           editor={tiptap.editor}
