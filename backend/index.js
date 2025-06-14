@@ -6,9 +6,25 @@ const path = require("path");
 const cors = require("cors");
 
 // Middleware
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+const allowedOrigins = [
+  "https://chat-forum.beyondsoftwares.com",
+  "https://forum.beyondsoftwares.com",
+  "http://localhost:5173",
+  "http://localhost:5174"
+];
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  }
+}));
+app.use(express.json({ limit: "1gb" }));
+app.use(express.urlencoded({ extended: true, limit: "1gb" }));
 
 // Serve .webm files in /uploads/audio as audio/webm
 app.use("/uploads/audio", (req, res, next) => {
@@ -44,6 +60,7 @@ const { Server } = require("socket.io");
 // Start server
 const PORT = process.env.PORT || 5050;
 const server = http.createServer(app);
+server.timeout = 600000; // 10 minutes for large uploads
 const io = new Server(server, {
   cors: {
     origin: "*",

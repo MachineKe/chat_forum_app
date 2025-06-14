@@ -63,7 +63,10 @@ const storage = multer.diskStorage({
     cb(null, name);
   },
 });
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 1 * 1024 * 1024 * 1024 } // 1GB
+});
 
  // POST /api/posts/upload-media
 router.post(
