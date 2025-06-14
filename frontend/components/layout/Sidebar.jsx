@@ -27,7 +27,7 @@ const Sidebar = ({
         <div className="w-64 flex items-start justify-start p-6">
           <Link to="/" className="block">
             <img
-              src="/epra logo.png"
+              src="/epra-forum-logo-2.png"
               alt="Logo"
               className="h-10 w-auto"
               style={{ objectFit: "contain" }}
