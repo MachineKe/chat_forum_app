@@ -10,7 +10,8 @@ const allowedOrigins = [
   "https://chat-forum.beyondsoftwares.com",
   "https://forum.beyondsoftwares.com",
   "http://localhost:5173",
-  "http://localhost:5174"
+  "http://localhost:5174",
+  "https://chat-forum-app.vercel.app",
 ];
 app.use(cors({
   origin: function (origin, callback) {
