@@ -11,6 +11,8 @@ import TiptapToolbar from "@components/rich-text/TiptapToolbar";
 import TiptapPostButton from "@components/rich-text/TiptapPostButton";
 import renderMediaPreviewOnly from "@components/rich-text/TiptapMediaPreview";
 import useTiptapEditor from "@hooks/useTiptapEditor";
+import LoadingSpinner from "@components/common/LoadingSpinner";
+import UploadError from "@components/common/UploadError";
 
 // ... (imports remain unchanged)
 
@@ -99,6 +101,13 @@ const TiptapEditor = ({
             </div>
           )}
         </div>
+        {/* Upload feedback for mini editor */}
+        <UploadFeedback
+          loading={tiptap.uploadLoading || tiptap.uploading}
+          progress={tiptap.uploadProgress}
+          error={tiptap.uploadError}
+          onRetry={tiptap.retryUpload}
+        />
         {/* Minimal toolbar: only emoji, attach, and send */}
         <TiptapToolbar
           editor={tiptap.editor}
@@ -295,6 +304,8 @@ const TiptapEditor = ({
       <Modal open={tiptap.mediaModalOpen} onClose={() => { tiptap.setMediaModalOpen(false); tiptap.setShowCamera(false); }} showClose={false}>
         <div className="p-6 rounded-lg shadow-lg min-w-[300px] flex flex-col items-center">
           <h2 className="text-lg font-semibold mb-4">Add Photo or Video</h2>
+          {tiptap.uploadLoading && <LoadingSpinner progress={tiptap.uploadProgress} />}
+          <UploadError error={tiptap.uploadError} onRetry={tiptap.retryUpload} />
           <input
             id="tiptap-media-file-input"
             type="file"
@@ -305,6 +316,7 @@ const TiptapEditor = ({
                 tiptap.handleFileChange(e.target.files[0]);
               }
             }}
+            disabled={tiptap.uploadLoading}
           />
           <button
             className="mb-2 px-4 py-2 bg-blue-600 text-white rounded"
@@ -312,6 +324,7 @@ const TiptapEditor = ({
               tiptap.setMediaModalOpen(false);
               setTimeout(() => tiptap.setShowCamera(true), 100); // ensure media modal closes first
             }}
+            disabled={tiptap.uploadLoading}
           >
             Open Camera
           </button>
@@ -320,6 +333,7 @@ const TiptapEditor = ({
             onClick={() => {
               document.getElementById('tiptap-media-file-input').click();
             }}
+            disabled={tiptap.uploadLoading}
           >
             Choose File
           </button>
@@ -329,6 +343,8 @@ const TiptapEditor = ({
       <Modal open={tiptap.attachmentModalOpen} onClose={() => { tiptap.setAttachmentModalOpen(false); }} showClose={false}>
         <div className="p-6 rounded-lg shadow-lg min-w-[300px] flex flex-col items-center">
           <h2 className="text-lg font-semibold mb-4">Attach File (Audio, PDF, etc.)</h2>
+          {tiptap.uploadLoading && <LoadingSpinner progress={tiptap.uploadProgress} />}
+          <UploadError error={tiptap.uploadError} onRetry={tiptap.retryUpload} />
           <input
             id="tiptap-attachment-file-input"
             type="file"
@@ -339,6 +355,7 @@ const TiptapEditor = ({
                 tiptap.handleAttachmentFileChange(e.target.files[0]);
               }
             }}
+            disabled={tiptap.uploadLoading}
           />
           <button
             className="mb-2 px-4 py-2 bg-blue-600 text-white rounded"
@@ -346,6 +363,7 @@ const TiptapEditor = ({
               tiptap.setAttachmentModalOpen(false);
               setTimeout(() => tiptap.setAudioRecorderModalOpen(true), 100);
             }}
+            disabled={tiptap.uploadLoading}
           >
             Record Audio
           </button>
@@ -354,6 +372,7 @@ const TiptapEditor = ({
             onClick={() => {
               document.getElementById('tiptap-attachment-file-input').click();
             }}
+            disabled={tiptap.uploadLoading}
           >
             Choose File
           </button>
@@ -380,8 +399,10 @@ const TiptapEditor = ({
                 uploadedUrl = data.url;
                 uploadedId = data.id;
               } catch (err) {
-                uploadedUrl = URL.createObjectURL(blob);
-                uploadedId = null;
+                // Show error and do not insert blob: URL
+                alert("Failed to upload audio. Please try again.");
+                tiptap.setAudioRecorderModalOpen(false);
+                return;
               }
               tiptap.setSelectedMedia({
                 src: uploadedUrl,

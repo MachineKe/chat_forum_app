@@ -53,36 +53,38 @@ const PostDetail = () => {
             media_title={post.media_title}
             user={user}
           />
-          <div className="flex justify-center px-4 py-4 border-b">
-            <div className="w-full max-w-lg">
-              <CommentInput
-                user={{
-                  name: user?.full_name || user?.username || user?.email || "User",
-                  avatar:
-                    user?.avatar && user?.avatar.length > 0
-                      ? user.avatar
-                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || "User")}&background=0D8ABC&color=fff`
-                }}
-                onSubmit={({ content, media_id, media_type, media_title, thumbnail, reset }) => {
-                  // Use the same logic as handleReply, but unified
-                  handleReply(
-                    {
-                      getHTML: () => content
-                    },
-                    { id: media_id, type: media_type },
-                    media_title,
-                    thumbnail
-                  );
-                  reset();
-                }}
-                placeholder="Write a comment..."
-                actionLabel="Comment"
-                minHeight={80}
-                autoFocus={isReplyEditorActive}
-                onCancel={() => setIsReplyEditorActive(false)}
-              />
+          {user && (
+            <div className="flex justify-center px-4 py-4 border-b">
+              <div className="w-full max-w-lg">
+                <CommentInput
+                  user={{
+                    name: user?.full_name || user?.username || user?.email || "User",
+                    avatar:
+                      user?.avatar && user?.avatar.length > 0
+                        ? user.avatar
+                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || "User")}&background=0D8ABC&color=fff`
+                  }}
+                  onSubmit={({ content, media_id, media_type, media_title, thumbnail, reset }) => {
+                    // Use the same logic as handleReply, but unified
+                    handleReply(
+                      {
+                        getHTML: () => content
+                      },
+                      { id: media_id, type: media_type },
+                      media_title,
+                      thumbnail
+                    );
+                    reset();
+                  }}
+                  placeholder="Write a comment..."
+                  actionLabel="Comment"
+                  minHeight={80}
+                  autoFocus={isReplyEditorActive}
+                  onCancel={() => setIsReplyEditorActive(false)}
+                />
+              </div>
             </div>
-          </div>
+          )}
           <div className="w-full max-w-2xl mx-auto">
             <CommentThread
               comments={comments.map((c, idx) => {
@@ -139,14 +141,14 @@ const PostDetail = () => {
                 handleCommentReply(parentId, content, mediaId, mediaTitle, thumbnail, mediaType);
               }}
               loading={loading}
-              user={{
+              user={user ? {
                 name: user?.full_name || user?.username || user?.email || "User",
                 username: user?.username || "",
                 avatar:
                   user?.avatar && user?.avatar.length > 0
                     ? user.avatar
                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username || "User")}&background=0D8ABC&color=fff`
-              }}
+              } : null}
               fetchComments={fetchComments}
             />
           </div>

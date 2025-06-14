@@ -5,6 +5,7 @@ import PlainText from "@components/rich-text/PlainText";
 import ExcessContentManager from "@components/common/ExcessContentManager";
 import Avatar from "@components/layout/Avatar";
 import MediaPlayer from "@components/media/MediaPlayer";
+import { resolveMediaUrl, fixMediaSrcs } from "@utils/api";
 import LikeButton from "@components/layout/LikeButton";
 import { FaThumbsUp } from "react-icons/fa";
 import useCommentThread from "@hooks/useCommentThread";
@@ -108,7 +109,7 @@ function renderTextBeforeMedia(html) {
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="image"
               title={title}
               alt=""
@@ -122,7 +123,7 @@ function renderTextBeforeMedia(html) {
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="video"
               title={title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
@@ -135,7 +136,7 @@ function renderTextBeforeMedia(html) {
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="audio"
               title={title}
               style={{ maxWidth: "100%", borderRadius: 8, margin: "8px 0" }}
@@ -168,7 +169,7 @@ function renderTextBeforeMedia(html) {
     );
   } catch (err) {
     // Fallback to raw HTML if parsing fails
-    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    return <span dangerouslySetInnerHTML={{ __html: fixMediaSrcs(html) }} />;
   }
 }
 

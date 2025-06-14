@@ -1,5 +1,6 @@
 import React from "react";
 import MediaPlayer from "@components/media/MediaPlayer";
+import { resolveMediaUrl, fixMediaSrcs } from "@utils/api";
 
 // Helper to render only media nodes from Tiptap HTML
 function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
@@ -32,7 +33,7 @@ function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="image"
               title={title}
               alt=""
@@ -47,7 +48,7 @@ function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="video"
               title={title}
               autoPlay={true}
@@ -63,7 +64,7 @@ function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type="audio"
               title={title}
               thumbnail={thumbnail}
@@ -78,7 +79,7 @@ function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
           return (
             <MediaPlayer
               key={key}
-              src={src}
+              src={resolveMediaUrl(src)}
               type={type === "application/pdf" ? "pdf" : "document"}
               title={title}
               thumbnail={thumbnail}
@@ -97,7 +98,7 @@ function renderMediaPreviewOnly(html, overrideTitle, selectedMedia) {
     );
   } catch (err) {
     // Fallback to raw HTML if parsing fails
-    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    return <span dangerouslySetInnerHTML={{ __html: fixMediaSrcs(html) }} />;
   }
 }
 

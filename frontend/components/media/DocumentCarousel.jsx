@@ -15,8 +15,9 @@
  *   initialPage: Page to show first (default 1)
  */
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import DocumentViewer from "./DocumentViewer";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 /**
  * DocumentCarousel - carousel for viewing pages of a single PDF document.
@@ -35,19 +36,68 @@ const DocumentCarousel = ({
   className = "",
   style = {},
   initialPage = 1,
+  onLoadSuccess,
+  onError,
 }) => {
   const [numPages, setNumPages] = useState(null);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [transitioning, setTransitioning] = useState(false);
   const [pendingPage, setPendingPage] = useState(null);
+  const [pdfPageHeight, setPdfPageHeight] = useState(0);
+  const [pdfBuffer, setPdfBuffer] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
+
+  // Fetch PDF as ArrayBuffer once on mount or when src changes
+  React.useEffect(() => {
+    if (!src) return;
+    setPdfLoading(true);
+    setPdfError(null);
+    fetch(src)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch PDF");
+        return res.arrayBuffer();
+      })
+      .then(buffer => {
+        setPdfBuffer(buffer);
+        setPdfLoading(false);
+      })
+      .catch(err => {
+        setPdfError(err.message || "Failed to load PDF");
+        setPdfLoading(false);
+      });
+  }, [src]);
 
   if (!src) return null;
 
-  const handleLoadSuccess = ({ numPages }) => {
-    setNumPages(numPages);
-    // Clamp currentPage if needed
-    if (currentPage > numPages) setCurrentPage(numPages);
-  };
+  const handlePageRender = useCallback((heightPx) => {
+    if (heightPx && heightPx > 0) setPdfPageHeight(heightPx);
+  }, []);
+
+  const handleLoadSuccess = useCallback(
+    ({ numPages }) => {
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.log("DocumentCarousel handleLoadSuccess numPages:", numPages);
+      }
+      setNumPages(numPages);
+      // Clamp currentPage if needed
+      if (currentPage > numPages) setCurrentPage(numPages);
+      if (onLoadSuccess) onLoadSuccess();
+    },
+    [currentPage, onLoadSuccess]
+  );
+
+  const handleError = useCallback(
+    (err) => {
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.error("DocumentCarousel handleError", err);
+      }
+      if (onError) onError(err);
+    },
+    [onError]
+  );
 
   const goTo = (page) => {
     if (!numPages) return;
@@ -67,27 +117,52 @@ const DocumentCarousel = ({
 
   return (
     <div className={`w-full py-4 ${className}`} style={style}>
+      {/* Show a loading spinner only while numPages is null (before PDF loads) */}
       <div className="relative w-full h-full bg-white rounded-xl shadow-lg flex flex-col justify-center items-center py-4 group overflow-visible z-10">
+        {/* Loading spinner overlay */}
+        {(pdfLoading || numPages === null) && (
+          <div className="absolute inset-0 flex items-center justify-center w-full h-full z-20" style={{ background: "rgba(255,255,255,0.7)" }}>
+            <LoadingSpinner label="Loading PDF..." />
+          </div>
+        )}
+        {pdfError && (
+          <div className="absolute inset-0 flex items-center justify-center w-full h-full z-20 bg-white bg-opacity-90 text-red-600">
+            {pdfError}
+          </div>
+        )}
         <div
-          className={`w-full h-full flex-1 flex items-center justify-center outline-none transition-opacity duration-300 ${transitioning ? "opacity-0" : "opacity-100"}`}
+          className="w-full h-full flex-1 flex items-center justify-center outline-none transition-opacity duration-300"
           tabIndex={0}
+          style={{
+            opacity: transitioning ? 0 : 1,
+            minHeight: pdfPageHeight ? `${pdfPageHeight}px` : "400px",
+            transition: "min-height 0.2s"
+          }}
         >
           <DocumentViewer
             src={src}
+            file={pdfBuffer ? { data: pdfBuffer } : undefined}
             type={type}
             pageNumber={currentPage}
             onLoadSuccess={handleLoadSuccess}
+            onError={handleError}
             className="w-full h-full"
             style={{ borderRadius: 16, background: "white", width: "100%", height: "100%" }}
+            hideLoading={true}
+            onPageRender={handlePageRender}
+            minHeight={pdfPageHeight ? `${pdfPageHeight}px` : "400px"}
           />
         </div>
         {/* Carousel Navigation Buttons */}
-        {numPages && numPages > 1 && (
+        {numPages > 1 && (
           <>
             <button
               className="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-90 rounded-full shadow-lg p-3 z-20 border border-gray-300 hover:bg-blue-100 transition-all opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto disabled:opacity-40 disabled:pointer-events-none text-2xl"
               style={{ left: 8, right: "auto" }}
-              onClick={handlePrev}
+              onClick={e => {
+                e.stopPropagation();
+                handlePrev();
+              }}
               disabled={currentPage === 1}
               aria-label="Previous page"
             >
@@ -96,7 +171,10 @@ const DocumentCarousel = ({
             <button
               className="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-90 rounded-full shadow-lg p-3 z-20 border border-gray-300 hover:bg-blue-100 transition-all opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto disabled:opacity-40 disabled:pointer-events-none text-2xl"
               style={{ right: 8, left: "auto" }}
-              onClick={handleNext}
+              onClick={e => {
+                e.stopPropagation();
+                handleNext();
+              }}
               disabled={currentPage === numPages}
               aria-label="Next page"
             >
@@ -109,7 +187,7 @@ const DocumentCarousel = ({
         )}
       </div>
       {/* Page Indicator and Dots BELOW the PDF card */}
-      {numPages && numPages > 1 && (
+      {numPages > 1 && (
         <div className="flex flex-col items-center mt-2" style={{ background: "none", border: "none" }}>
           <span className="text-xs text-gray-700 bg-white bg-opacity-90 rounded px-2 py-1 shadow border border-gray-200 mb-1">
             {currentPage} / {numPages}

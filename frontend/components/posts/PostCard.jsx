@@ -22,7 +22,7 @@ function getRelativeTime(dateString) {
 }
 
 import MediaPlayer from "@components/media/MediaPlayer";
-import { resolveMediaUrl } from "@utils/api";
+import { resolveMediaUrl, fixMediaSrcs } from "@utils/api";
 import useUser from "@hooks/useUser";
 import ExcessContentManager from "@components/common/ExcessContentManager";
 
@@ -285,6 +285,7 @@ const PostCard = ({
                 profileUrl={`/user/${username}`}
                 onClick={e => {
                   e.preventDefault();
+                  e.stopPropagation();
                   navigate(`/user/${username}`);
                 }}
               />
@@ -310,6 +311,7 @@ const PostCard = ({
             onClick={e => {
               if (username && typeof username === "string" && username.trim().length > 0) {
                 e.preventDefault();
+                e.stopPropagation();
                 navigate(`/user/${username}`);
               }
             }}
@@ -385,14 +387,13 @@ const PostCard = ({
                 thumbnail={thumbnail}
                 style={{
                   maxWidth: "100%",
-                  minHeight: type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined,
-                  height: type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined,
                   borderRadius: 8,
                   borderTopLeftRadius: title ? 0 : 8,
                   borderTopRightRadius: title ? 0 : 8,
-                  margin: type === "audio" ? "0 0 8px 0" : "8px 0"
+                  margin: type === "audio" ? "8px 0" : "8px 0"
                 }}
-                height={type === "audio" && !isSingleView ? 120 : type === "audio" ? 180 : undefined}
+                // Remove forced height/minHeight for audio
+                height={undefined}
                 barCount={type === "audio" ? 64 : undefined}
               />
             </div>
@@ -743,7 +744,7 @@ function renderTextBeforeMedia(content, media_title, media_type, suppressAudio) 
     );
   } catch (err) {
     // Fallback to raw HTML if parsing fails
-    return <span dangerouslySetInnerHTML={{ __html: content }} />;
+    return <span dangerouslySetInnerHTML={{ __html: fixMediaSrcs(content) }} />;
   }
 }
 

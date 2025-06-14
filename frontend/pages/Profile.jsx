@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@hooks/useAuth.jsx";
 import Avatar from "@components/layout/Avatar";
 import ProfileHeader from "@components/layout/ProfileHeader";
 import Banner from "@components/layout/Banner";
@@ -9,6 +10,7 @@ const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&colo
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { setUser: setAuthUser } = useAuth();
   const [user, setUser] = useState({
     full_name: "",
     email: "",
@@ -22,29 +24,25 @@ const Profile = () => {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
+  const { fetchProfile } = useAuth();
+
   useEffect(() => {
-    // Fetch user profile from backend using email from localStorage
-    const stored = JSON.parse(localStorage.getItem("user"));
-    const email = stored?.email;
-    if (email) {
-      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/profile?email=${encodeURIComponent(email)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.id) {
-            setUser({
-              id: data.id,
-              full_name: data.full_name || "",
-              username: data.username || "",
-              email: data.email || "",
-              avatar: data.avatar || "",
-              banner: data.banner || "",
-              bio: data.bio || "",
-            });
-            // Update localStorage with id for future use
-            localStorage.setItem("user", JSON.stringify(data));
-          }
+    // Always fetch latest user profile from backend on mount
+    async function loadProfile() {
+      const latest = await fetchProfile();
+      if (latest) {
+        setUser({
+          id: latest.id,
+          full_name: latest.full_name || "",
+          username: latest.username || "",
+          email: latest.email || "",
+          avatar: latest.avatar || "",
+          banner: latest.banner || "",
+          bio: latest.bio || "",
         });
+      }
     }
+    loadProfile();
   }, []);
 
   const handleChange = (e) => {
@@ -136,6 +134,7 @@ const Profile = () => {
         banner: updated.banner,
         bio: updated.bio || "",
       });
+      setAuthUser(updated); // Update global user context for redirect logic
       setSuccess("Profile updated successfully.");
     } catch (err) {
       setError("Failed to update profile.");
@@ -159,13 +158,28 @@ const Profile = () => {
     setLoading(false);
   };
 
+  const isProfileIncomplete =
+    !user.full_name ||
+    user.full_name.trim() === "" ||
+    !user.bio ||
+    user.bio.trim() === "";
+
   return (
-    <div className="min-h-screen bg-[#f7f9fa]">
-      <div className="flex flex-col items-center w-full pt-6">
+    <>
+      <div className="flex flex-col items-center w-full pt-6 bg-[#f7f9fa]">
         <div className="w-full max-w-2xl mx-auto">
+          {/* Show blocking message if profile is incomplete */}
+          {isProfileIncomplete && (
+            <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+              <strong>Complete your profile to continue:</strong>
+              <div>
+                Please provide your <b>Full Name</b> and <b>Bio</b>. You will not be able to use the app until these are filled in and saved.
+              </div>
+            </div>
+          )}
           {/* Header with Back Button and border */}
           <div className="w-full flex items-center px-4 py-3 border-b bg-white">
-            <BackButton label="Profile" />
+            {!isProfileIncomplete && <BackButton label="Profile" />}
           </div>
           {/* Profile Header with Banner */}
           <ProfileHeader
@@ -295,7 +309,7 @@ const Profile = () => {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

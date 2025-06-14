@@ -29,16 +29,18 @@ const AudioRecorderDemo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <AudioRecorder
-        onSave={handleSave}
-        onUpload={handleUpload}
-        onShare={handleShare}
-        onSummary={handleSummary}
-        onTranscribe={handleTranscribe}
-        maxDuration={60}
-      />
-    </div>
+    <>
+      <div className="bg-gray-100 flex items-center justify-center w-full h-full">
+        <AudioRecorder
+          onSave={handleSave}
+          onUpload={handleUpload}
+          onShare={handleShare}
+          onSummary={handleSummary}
+          onTranscribe={handleTranscribe}
+          maxDuration={60}
+        />
+      </div>
+    </>
   );
 };
 

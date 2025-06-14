@@ -33,6 +33,7 @@ const BackButton = ({ onClick, className = "", label, ...props }) => {
       <Button
         onClick={handleClick}
         aria-label="Back"
+        variant="icon"
         className={
           // Override Button's default style to match the original back button
           "mr-2 text-gray-700 hover:bg-gray-100 rounded-full p-2 cursor-pointer"

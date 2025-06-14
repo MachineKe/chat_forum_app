@@ -1,7 +1,8 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import LeftSidebar from "./LeftSidebar";
 import RightSidebar from "./RightSidebar";
+import { useAuth } from "@hooks/useAuth.jsx";
 
 /**
  * Sidebar layout component.
@@ -17,9 +18,23 @@ const Sidebar = ({
 }) => {
   const location = useLocation();
   const isChatPage = location.pathname === "/chat";
+  const { user } = useAuth();
   return (
     <div className={`flex min-h-screen w-full bg-white ${className}`} style={style}>
-      <LeftSidebar {...leftSidebarProps} />
+      {user ? (
+        <LeftSidebar {...leftSidebarProps} />
+      ) : (
+        <div className="w-64 flex items-start justify-start p-6">
+          <Link to="/" className="block">
+            <img
+              src="/epra logo.png"
+              alt="Logo"
+              className="h-10 w-auto"
+              style={{ objectFit: "contain" }}
+            />
+          </Link>
+        </div>
+      )}
       <main className="flex-1 min-h-screen">{children}</main>
       {!isChatPage && <RightSidebar {...rightSidebarProps} />}
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import AuthLayout from "@layouts/AuthLayout";
 import Input from "@components/layout/Input";
 import Button from "@components/layout/Button";
@@ -42,11 +42,14 @@ const Login = () => {
           onChange={e => setPassword(e.target.value)}
         />
         {/* Toggle for LDAP login will go here */}
-        <Button type="submit">Login</Button>
+        <Button type="submit" className="w-full py-3 text-base font-semibold">Login</Button>
         {error && <div className="text-red-600 mt-2">{error}</div>}
       </form>
       <div className="mt-4 text-sm text-center">
-        Don't have an account? <a href="/register" className="text-blue-600 underline">Register</a>
+        Don't have an account?{" "}
+        <Link to="/register" className="text-blue-600 underline">
+          Register
+        </Link>
       </div>
     </AuthLayout>
   );

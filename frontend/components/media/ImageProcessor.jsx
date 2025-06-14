@@ -23,6 +23,8 @@ const ImageProcessor = ({
   style = {},
   aspectRatio,
   viewType,
+  withFrame = false,
+  frameClassName = "bg-white/80 border border-gray-200 rounded-xl shadow-sm p-2",
   ...props
 }) => {
   // Remove barCount from being passed to DOM
@@ -33,9 +35,19 @@ const ImageProcessor = ({
     (viewType && aspectRatioMap[viewType]) ||
     undefined;
 
+  // Frame wrapper
+  const wrapWithFrame = (element) =>
+    withFrame ? (
+      <div className={frameClassName} style={{ display: "inline-block" }}>
+        {element}
+      </div>
+    ) : (
+      element
+    );
+
   // If aspect ratio is set, use a wrapper to enforce it
   if (ratio) {
-    return (
+    return wrapWithFrame(
       <div
         className={`relative w-full h-0 overflow-hidden ${className}`}
         style={{
@@ -49,18 +61,20 @@ const ImageProcessor = ({
           alt={alt}
           className="absolute inset-0 w-full h-full object-cover"
           style={{ objectFit: "cover" }}
+          onLoad={props.onLoad}
         />
       </div>
     );
   }
 
   // Default: fill parent, cover area
-  return (
+  return wrapWithFrame(
     <img
       src={src}
       alt={alt}
       className={`w-full h-full object-cover ${className}`}
       style={{ objectFit: "cover", ...style }}
+      onLoad={props.onLoad}
       {...safeProps}
     />
   );

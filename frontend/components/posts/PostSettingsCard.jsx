@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Card from "@components/layout/Card";
 import MediaPlayer from "@components/media/MediaPlayer";
+import { resolveMediaUrl, fixMediaSrcs } from "@utils/api";
 
 function renderTextBeforeMedia(html) {
   try {
@@ -128,7 +129,7 @@ function renderTextBeforeMedia(html) {
     );
   } catch (err) {
     // Fallback to raw HTML if parsing fails
-    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    return <span dangerouslySetInnerHTML={{ __html: fixMediaSrcs(html) }} />;
   }
 }
 
@@ -184,7 +185,7 @@ const PostSettingsCard = ({ content, media, onBack, onPost, loading, user = { na
         {previewMedia && (
           <div className="my-4">
             <MediaPlayer
-              src={previewMedia.url}
+              src={resolveMediaUrl(previewMedia.url)}
               type={previewMedia.type}
               title={previewMedia.title}
               thumbnail={previewMedia.thumbnail}
