@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import AuthLayout from "@layouts/AuthLayout";
 import Input from "@components/layout/Input";
 import Button from "@components/layout/Button";
@@ -58,7 +59,7 @@ const Register = () => {
           onChange={handleChange}
           required
         />
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} className="w-full py-3 text-base font-semibold">
           {loading ? "Registering..." : "Register"}
         </Button>
       </form>
@@ -66,9 +67,9 @@ const Register = () => {
       {success && <div className="mt-4 text-green-600 text-sm">{success}</div>}
       <div className="mt-4 text-sm text-center">
         Already have an account?{" "}
-        <a href="/login" className="text-blue-600 underline">
+        <Link to="/login" className="text-blue-600 underline">
           Login
-        </a>
+        </Link>
       </div>
     </AuthLayout>
   );
