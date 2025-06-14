@@ -6,10 +6,46 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch latest user profile from backend
+  const fetchProfile = async (tokenToUse = null) => {
+    const t = tokenToUse || token;
+    // Get email from localStorage user or current user state
+    let email = null;
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.email) email = parsed.email;
+      }
+    } catch {}
+    if (!email && user && user.email) email = user.email;
+    if (!email) return null;
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/profile?email=${encodeURIComponent(email)}`,
+        {
+          headers: t ? { Authorization: `Bearer ${t}` } : {},
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        console.log("DEBUG fetchProfile response:", data); // DEBUG
+        setUser(data);
+        localStorage.setItem("user", JSON.stringify(data));
+        return data;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  };
 
   // Load user/token from localStorage on mount and keep in sync with storage events
   useEffect(() => {
-    function syncAuthFromStorage() {
+    async function syncAuthFromStorage() {
+      setLoading(true);
       const storedToken = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
       let validUser = null;
@@ -26,15 +62,17 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem("user");
         }
       }
-      if (storedToken && validUser) {
+      if (storedToken) {
         setToken(storedToken);
-        setUser(validUser);
+        // Always fetch latest profile from backend if token exists
+        await fetchProfile(storedToken);
       } else {
         setToken(null);
         setUser(null);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
       }
+      setLoading(false);
     }
     syncAuthFromStorage();
     window.addEventListener("storage", syncAuthFromStorage);
@@ -63,7 +101,9 @@ export const AuthProvider = ({ children }) => {
       const data = await res.json();
       if (res.ok && data.token) {
         setToken(data.token);
-        setUser(data.user);
+        setUser(data.user); // Set user from login response immediately
+        // Fetch latest profile from backend and wait for it to complete
+        await fetchProfile(data.token);
         return { success: true };
       } else {
         logout();
@@ -123,6 +163,8 @@ export const AuthProvider = ({ children }) => {
         authFetch,
         setUser,
         setToken,
+        fetchProfile,
+        loading,
       }}
     >
       {children}

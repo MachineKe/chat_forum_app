@@ -51,14 +51,41 @@ function RequireAuth({ children }) {
 
 // All routing and footer logic, must be rendered inside <Router>
 function AppRoutes() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const hideFooterRoutes = ["/login", "/register"];
   const shouldShowFooter = !user && !hideFooterRoutes.includes(location.pathname);
 
+  // Wait for user profile to load before running redirect logic
+  if (loading) {
+    return null; // or a spinner if you have one
+  }
+
+  // DEBUG: Log user object and completeness check before redirect logic
+  if (user) {
+    // eslint-disable-next-line
+    console.log("DEBUG AppRoutes user object:", user);
+    // eslint-disable-next-line
+    console.log("DEBUG AppRoutes full_name:", user.full_name, "bio:", user.bio);
+    // eslint-disable-next-line
+    console.log(
+      "DEBUG AppRoutes isProfileIncomplete:",
+      !user.full_name ||
+        user.full_name.trim() === "" ||
+        !user.bio ||
+        user.bio.trim() === ""
+    );
+  }
+
   // Redirect to /profile if user is logged in and profile is incomplete, except when already on /profile, /login, or /register
-  const isProfileIncomplete =
+  // Only check completeness if both full_name and bio are present as properties
+  const hasProfileFields =
     user &&
+    Object.prototype.hasOwnProperty.call(user, "full_name") &&
+    Object.prototype.hasOwnProperty.call(user, "bio");
+
+  const isProfileIncomplete =
+    hasProfileFields &&
     (
       !user.full_name ||
       user.full_name.trim() === "" ||
@@ -68,7 +95,7 @@ function AppRoutes() {
   const isOnProfileOrAuth =
     ["/profile", "/login", "/register"].includes(location.pathname);
 
-  if (user && isProfileIncomplete && !isOnProfileOrAuth) {
+  if (user && hasProfileFields && isProfileIncomplete && !isOnProfileOrAuth) {
     return <Navigate to="/profile" replace />;
   }
 

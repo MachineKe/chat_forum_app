@@ -24,29 +24,25 @@ const Profile = () => {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
+  const { fetchProfile } = useAuth();
+
   useEffect(() => {
-    // Fetch user profile from backend using email from localStorage
-    const stored = JSON.parse(localStorage.getItem("user"));
-    const email = stored?.email;
-    if (email) {
-      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/profile?email=${encodeURIComponent(email)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.id) {
-            setUser({
-              id: data.id,
-              full_name: data.full_name || "",
-              username: data.username || "",
-              email: data.email || "",
-              avatar: data.avatar || "",
-              banner: data.banner || "",
-              bio: data.bio || "",
-            });
-            // Update localStorage with id for future use
-            localStorage.setItem("user", JSON.stringify(data));
-          }
+    // Always fetch latest user profile from backend on mount
+    async function loadProfile() {
+      const latest = await fetchProfile();
+      if (latest) {
+        setUser({
+          id: latest.id,
+          full_name: latest.full_name || "",
+          username: latest.username || "",
+          email: latest.email || "",
+          avatar: latest.avatar || "",
+          banner: latest.banner || "",
+          bio: latest.bio || "",
         });
+      }
     }
+    loadProfile();
   }, []);
 
   const handleChange = (e) => {
