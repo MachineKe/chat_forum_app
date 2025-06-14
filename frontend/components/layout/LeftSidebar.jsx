@@ -25,7 +25,7 @@ const LeftSidebar = ({
         <div className="flex flex-col items-center justify-center h-full p-6">
           <Link to="/" className="px-4 flex items-center justify-center">
             <img
-              src="/epra logo.png"
+              src="/epra-forum-logo-2.png"
               alt="EPRA Logo"
               className="h-12 w-auto object-contain"
               style={{ maxWidth: 160 }}
@@ -70,7 +70,7 @@ const LeftSidebar = ({
         {/* EPRA Logo */}
         <Link to="/" className="mb-4 px-4 flex items-center justify-center">
           <img
-            src="/epra logo.png"
+            src="/epra-forum-logo-2.png"
             alt="EPRA Logo"
             className="h-12 w-auto object-contain"
             style={{ maxWidth: 160 }}

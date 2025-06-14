@@ -26,7 +26,7 @@ const AuthLayout = ({ children }) => (
       <div className="relative z-10 flex flex-col items-center">
         <div className="flex items-center mb-6">
           <ImageProcessor
-            src="/epra-forum-logo.png"
+            src="/epra-forum-logo-2.png"
             alt="Logo"
             className="h-20 w-20 mr-6"
             withFrame={true}
