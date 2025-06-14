@@ -21,7 +21,7 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['forum.beyondsoftwares.com'],
+    allowedHosts: ['forum.beyondsoftwares.com', 'chat-forum-app.vercel.app'],
     // Uncomment and adjust proxy if needed:
     // proxy: {
     //   '/api': 'http://localhost:5050',
