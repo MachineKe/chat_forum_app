@@ -14,6 +14,25 @@ import LoggedOutFooter from "@components/layout/LoggedOutFooter.jsx";
 
 // Layout with persistent Sidebar
 function SidebarLayout() {
+  const { user } = useAuth ? useAuth() : { user: null };
+  const location = useLocation();
+  const isProfileIncomplete =
+    user &&
+    (
+      !user.full_name ||
+      user.full_name.trim() === "" ||
+      !user.bio ||
+      user.bio.trim() === ""
+    );
+  const isOnProfile = location.pathname === "/profile";
+  // Hide sidebar if on /profile and profile is incomplete
+  if (isProfileIncomplete && isOnProfile) {
+    return (
+      <div>
+        <Outlet />
+      </div>
+    );
+  }
   return (
     <Sidebar>
       <Outlet />
@@ -27,6 +46,22 @@ function AppRoutes() {
   const location = useLocation();
   const hideFooterRoutes = ["/login", "/register"];
   const shouldShowFooter = !user && !hideFooterRoutes.includes(location.pathname);
+
+  // Redirect to /profile if user is logged in and profile is incomplete, except when already on /profile, /login, or /register
+  const isProfileIncomplete =
+    user &&
+    (
+      !user.full_name ||
+      user.full_name.trim() === "" ||
+      !user.bio ||
+      user.bio.trim() === ""
+    );
+  const isOnProfileOrAuth =
+    ["/profile", "/login", "/register"].includes(location.pathname);
+
+  if (user && isProfileIncomplete && !isOnProfileOrAuth) {
+    return <Navigate to="/profile" replace />;
+  }
 
   return (
     <>

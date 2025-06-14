@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@hooks/useAuth.jsx";
 import Avatar from "@components/layout/Avatar";
 import ProfileHeader from "@components/layout/ProfileHeader";
 import Banner from "@components/layout/Banner";
@@ -9,6 +10,7 @@ const mockAvatar = "https://ui-avatars.com/api/?name=User&background=0D8ABC&colo
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { setUser: setAuthUser } = useAuth();
   const [user, setUser] = useState({
     full_name: "",
     email: "",
@@ -136,6 +138,7 @@ const Profile = () => {
         banner: updated.banner,
         bio: updated.bio || "",
       });
+      setAuthUser(updated); // Update global user context for redirect logic
       setSuccess("Profile updated successfully.");
     } catch (err) {
       setError("Failed to update profile.");
@@ -159,13 +162,28 @@ const Profile = () => {
     setLoading(false);
   };
 
+  const isProfileIncomplete =
+    !user.full_name ||
+    user.full_name.trim() === "" ||
+    !user.bio ||
+    user.bio.trim() === "";
+
   return (
     <>
       <div className="flex flex-col items-center w-full pt-6 bg-[#f7f9fa]">
         <div className="w-full max-w-2xl mx-auto">
+          {/* Show blocking message if profile is incomplete */}
+          {isProfileIncomplete && (
+            <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded">
+              <strong>Complete your profile to continue:</strong>
+              <div>
+                Please provide your <b>Full Name</b> and <b>Bio</b>. You will not be able to use the app until these are filled in and saved.
+              </div>
+            </div>
+          )}
           {/* Header with Back Button and border */}
           <div className="w-full flex items-center px-4 py-3 border-b bg-white">
-            <BackButton label="Profile" />
+            {!isProfileIncomplete && <BackButton label="Profile" />}
           </div>
           {/* Profile Header with Banner */}
           <ProfileHeader
