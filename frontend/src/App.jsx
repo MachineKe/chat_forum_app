@@ -40,6 +40,15 @@ function SidebarLayout() {
   );
 }
 
+// RequireAuth wrapper for protected routes
+function RequireAuth({ children }) {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
 // All routing and footer logic, must be rendered inside <Router>
 function AppRoutes() {
   const { user } = useAuth();
@@ -66,17 +75,40 @@ function AppRoutes() {
   return (
     <>
       <Routes>
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/register"
+          element={
+            user ? <Navigate to="/" replace /> : <Register />
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            user ? <Navigate to="/" replace /> : <Login />
+          }
+        />
         {/* All main pages use the Sidebar layout */}
         <Route element={<SidebarLayout />}>
           <Route path="/" element={<Forum />} />
           <Route path="/post/:id" element={<PostDetail />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route
+            path="/profile"
+            element={
+              <RequireAuth>
+                <Profile />
+              </RequireAuth>
+            }
+          />
           <Route path="/user/:username" element={<PublicProfile />} />
           <Route path="/recorder" element={<AudioRecorderDemo />} />
-          <Route path="/recorder" element={<AudioRecorderDemo />} />
-          <Route path="/chat" element={<Chat />} />
+          <Route
+            path="/chat"
+            element={
+              <RequireAuth>
+                <Chat />
+              </RequireAuth>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
