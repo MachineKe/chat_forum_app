@@ -254,6 +254,7 @@ export default function useTiptapEditor({
       uploadedId = null;
     }
 
+    // Always show preview (even if upload fails, for user feedback)
     setSelectedMedia({
       src: uploadedUrl,
       type,
@@ -261,13 +262,18 @@ export default function useTiptapEditor({
       file,
       id: uploadedId,
     });
-    if (typeof onMediaUpload === "function") {
-      onMediaUpload(uploadedId, type, uploadedUrl, file.name);
-    }
-    // Only close modal if upload succeeded
-    if (uploadedId) setAttachmentModalOpen(false);
 
-    // Insert media into the editor
+    // Only call onMediaUpload if upload succeeded (i.e., we have a permanent URL and ID)
+    if (uploadedId && uploadedUrl && typeof onMediaUpload === "function") {
+      onMediaUpload(uploadedId, type, uploadedUrl, file.name);
+      // Only close modal if upload succeeded
+      setAttachmentModalOpen(false);
+    } else if (!uploadedId) {
+      // Show error: cannot persist blob URL
+      alert("Audio upload failed. Please try again. The preview is temporary and cannot be saved.");
+    }
+
+    // Insert media into the editor for preview (even if upload failed)
     if (editor) {
       if (type === "audio") {
         editor.chain().focus().insertContent(`<audio src="${uploadedUrl}" controls title="${file.name}"></audio>`).run();
