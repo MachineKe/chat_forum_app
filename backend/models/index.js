@@ -6,6 +6,7 @@ const Comment = require('./Comment');
 const Media = require('./Media');
 const UserFollow = require('./UserFollow')(sequelize, require('sequelize').DataTypes);
 const CommentLike = require('./CommentLike')(sequelize, require('sequelize').DataTypes);
+const PushSubscription = require('./PushSubscription')(sequelize, require('sequelize').DataTypes);
 
 // Associations
 User.hasMany(Message, { foreignKey: 'sender_id', as: 'sentMessages' });
@@ -35,6 +36,10 @@ User.belongsToMany(User, {
   otherKey: "following_id",
 });
 
+if (PushSubscription.associate) {
+  PushSubscription.associate({ User });
+}
+
 module.exports = {
   sequelize,
   User,
@@ -44,4 +49,5 @@ module.exports = {
   Media,
   UserFollow,
   CommentLike,
+  PushSubscription,
 };

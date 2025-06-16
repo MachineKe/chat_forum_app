@@ -11,6 +11,7 @@ import Chat from "@pages/Chat";
 import Sidebar from "@components/layout/Sidebar";
 import { useAuth } from "@hooks/useAuth.jsx";
 import LoggedOutFooter from "@components/layout/LoggedOutFooter.jsx";
+import PushNotificationProvider from "@components/common/PushNotificationProvider.jsx";
 
 // Layout with persistent Sidebar
 function SidebarLayout() {
@@ -101,6 +102,7 @@ function AppRoutes() {
 
   return (
     <>
+      <PushNotificationProvider />
       <Routes>
         <Route
           path="/register"

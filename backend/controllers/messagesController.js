@@ -1,4 +1,6 @@
 const { Message } = require("../models");
+const { User } = require("../models");
+const { sendNotification } = require("../services/notificationService");
 
 /**
  * Create a new message
@@ -32,6 +34,23 @@ exports.createMessage = async (req, res) => {
       receiver_id,
     });
     console.log("Saved message:", message && message.toJSON ? message.toJSON() : message);
+
+    // Send push notification to receiver
+    try {
+      if (receiver_id && sender_id) {
+        const sender = await User.findByPk(sender_id);
+        const senderName = sender ? sender.full_name || sender.username : "Someone";
+        const preview = content && content.trim() !== "" ? content : (media_title || "Media");
+        await sendNotification(receiver_id, {
+          title: "New Message",
+          body: content,
+          senderName,
+          preview,
+        });
+      }
+    } catch (notifyErr) {
+      console.error("Failed to send push notification:", notifyErr);
+    }
     // Emit updated messages for this conversation
     const io = req.app.get("io");
     if (io && sender_id && receiver_id) {
@@ -146,7 +165,6 @@ exports.deleteMessage = async (req, res) => {
   }
 };
 
-const { User } = require("../models");
 
 exports.getLatestMessagesPerUser = async (req, res) => {
   try {
