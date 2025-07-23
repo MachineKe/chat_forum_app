@@ -72,7 +72,7 @@ npm run dev
 
 ---
 
-### 4. MySQL Setup
+### 4. Database Setup
 
 run migrations:
 
