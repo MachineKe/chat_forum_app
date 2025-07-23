@@ -74,50 +74,10 @@ npm run dev
 
 ### 4. MySQL Setup
 
-Create a database and tables:
+run migrations:
 
-```sql
-CREATE DATABASE chat_forum_app;
-
-USE chat_forum_app;
-
-CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(50) NOT NULL,
-  email VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  is_ldap_user BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE messages (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  sender_id INT NOT NULL,
-  receiver_id INT NOT NULL,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (sender_id) REFERENCES users(id),
-  FOREIGN KEY (receiver_id) REFERENCES users(id)
-);
-
-CREATE TABLE posts (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-CREATE TABLE comments (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  post_id INT NOT NULL,
-  user_id INT NOT NULL,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (post_id) REFERENCES posts(id),
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
+```bash
+npx sequelize-cli db:migrate
 ```
 
 ---
