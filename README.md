@@ -39,8 +39,8 @@ README.md
 ### 1. Clone the repository
 
 ```bash
-git clone <repo-url>
-cd <repo-folder>
+git clone https://github.com/MachineKe/chat_forum_app.git
+cd chat_forum_app
 ```
 
 ---
